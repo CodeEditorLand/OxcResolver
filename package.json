@@ -1,36 +1,50 @@
 {
-  "name": "@oxc-resolver/binding",
-  "private": true,
-  "version": "0.0.0",
-  "scripts": {
-    "build": "napi build --platform --release --package-json-path npm/package.json --manifest-path napi/Cargo.toml",
-    "build:debug": "napi build --platform --package-json-path npm/package.json --manifest-path napi/Cargo.toml",
-    "prepublishOnly": "napi pre-publish -t npm",
-    "test": "ava"
-  },
-  "devDependencies": {
-    "@napi-rs/cli": "^3.0.0-alpha.43",
-    "@napi-rs/wasm-runtime": "^0.2.0",
-    "@types/node": "^20.10.4",
-    "ava": "^6.0.1",
-    "emnapi": "^1.0.0",
-    "typescript": "^5.3.3"
-  },
-  "engines": {
-    "node": ">=10"
-  },
-  "ava": {
-    "files": [
-      "napi/__test__/*.spec.mjs"
-    ],
-    "cache": false
-  },
-  "packageManager": "pnpm@9.0.6",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/oxc-project/oxc-resolver.git"
-  },
-  "funding": {
-    "url": "https://github.com/sponsors/Boshen"
-  }
+	"name": "@oxc-resolver/binding",
+	"version": "0.0.1",
+	"private": false,
+	"keywords": [
+		"land"
+	],
+	"homepage": "HTTPS://GitHub.Com/CodeEditorLand/OXCResolver#readme",
+	"bugs": {
+		"url": "HTTPS://GitHub.Com/CodeEditorLand/OXCResolver/issues"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+HTTPS://github.com/CodeEditorLand/OXCResolver.git"
+	},
+	"funding": {
+		"url": "https://github.com/sponsors/Boshen"
+	},
+	"license": "SEE LICENSE IN LICENSE",
+	"author": {
+		"name": "🌆 — Land —",
+		"email": "Land@PlayForm.Cloud",
+		"url": "HTTPS://Land.PlayForm.Cloud"
+	},
+	"type": "module",
+	"scripts": {
+		"Document": "Document 'Source/**/*.ts'",
+		"build": "napi build --platform --release --package-json-path npm/package.json --manifest-path napi/Cargo.toml",
+		"build:debug": "napi build --platform --package-json-path npm/package.json --manifest-path napi/Cargo.toml",
+		"prepublishOnly": "Build 'Source/**/*.ts'"
+	},
+	"ava": {
+		"cache": false,
+		"files": [
+			"napi/__test__/*.spec.mjs"
+		]
+	},
+	"devDependencies": {
+		"@napi-rs/cli": "^3.0.0-alpha.43",
+		"@napi-rs/wasm-runtime": "^0.2.0",
+		"@playform/build": "0.0.7",
+		"@playform/document": "0.0.6",
+		"@types/node": "^20.10.4",
+		"ava": "^6.0.1",
+		"emnapi": "^1.0.0"
+	},
+	"publishConfig": {
+		"access": "public"
+	}
 }
