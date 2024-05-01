@@ -36,13 +36,13 @@
 		]
 	},
 	"devDependencies": {
-		"@napi-rs/cli": "^3.0.0-alpha.43",
-		"@napi-rs/wasm-runtime": "^0.2.0",
+		"@napi-rs/cli": "3.0.0-alpha.43",
+		"@napi-rs/wasm-runtime": "0.2.3",
 		"@playform/build": "0.0.7",
 		"@playform/document": "0.0.6",
-		"@types/node": "^20.10.4",
-		"ava": "^6.0.1",
-		"emnapi": "^1.0.0"
+		"@types/node": "20.12.7",
+		"ava": "6.1.2",
+		"emnapi": "1.1.1"
 	},
 	"publishConfig": {
 		"access": "public"
