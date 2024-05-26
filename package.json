@@ -10,9 +10,7 @@
 	},
 	"ava": {
 		"cache": false,
-		"files": [
-			"napi/__test__/*.spec.mjs"
-		]
+		"files": ["napi/__test__/*.spec.mjs"]
 	},
 	"devDependencies": {
 		"@napi-rs/cli": "3.0.0-alpha.43",
