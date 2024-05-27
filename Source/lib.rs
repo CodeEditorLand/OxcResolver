@@ -871,26 +871,16 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
                 }
                 alias_key_raw
             };
+            // It should stop resolving when all of the tried alias values
+            // failed to resolve.
+            // <https://github.com/webpack/enhanced-resolve/blob/570337b969eee46120a18b62b72809a3246147da/lib/AliasPlugin.js#L65>
+            let mut should_stop = false;
             for r in specifiers {
                 match r {
                     AliasValue::Path(alias_value) => {
                         let new_specifier =
                             Specifier::parse(alias_value).map_err(ResolveError::Specifier)?;
-
-                        // `#` can be a fragment or a path, try fragment as path first
-                        if new_specifier.query.is_none() && new_specifier.fragment.is_some() {
-                            if let Some(path) = self.load_alias_value(
-                                cached_path,
-                                alias_key,
-                                alias_value, // pass in original alias value, not parsed
-                                specifier,
-                                ctx,
-                            )? {
-                                return Ok(Some(path));
-                            }
-                        }
-
-                        // Then try path without query and fragment
+                        // Resolve path without query and fragment
                         let old_query = ctx.query.clone();
                         let old_fragment = ctx.fragment.clone();
                         ctx.with_query_fragment(new_specifier.query, new_specifier.fragment);
@@ -900,6 +890,7 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
                             new_specifier.path(), // pass in parsed alias value
                             specifier,
                             ctx,
+                            &mut should_stop,
                         )? {
                             return Ok(Some(path));
                         }
@@ -910,6 +901,9 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
                         return Err(ResolveError::Ignored(path));
                     }
                 }
+            }
+            if should_stop {
+                return Err(ResolveError::NotFound(specifier.to_string()));
             }
         }
         Ok(None)
@@ -922,6 +916,7 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
         alias_value: &str,
         request: &str,
         ctx: &mut Ctx,
+        should_stop: &mut bool,
     ) -> ResolveResult {
         if request != alias_value
             && !request.strip_prefix(alias_value).is_some_and(|prefix| prefix.starts_with('/'))
@@ -944,6 +939,7 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
                 Cow::Owned(normalized.to_string_lossy().to_string())
             };
 
+            *should_stop = true;
             ctx.with_fully_specified(false);
             return match self.require(cached_path, new_specifier.as_ref(), ctx) {
                 Err(ResolveError::NotFound(_)) => Ok(None),
