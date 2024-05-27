@@ -1,16 +1,16 @@
 {
-	"browser": "browser.js",
+	"name": "oxc-resolver",
 	"description": "Oxc Resolver Node API",
+	"funding": {
+		"url": "https://github.com/sponsors/Boshen"
+	},
+	"main": "index.js",
+	"browser": "browser.js",
 	"files": [
 		"index.d.ts",
 		"index.js",
 		"browser.js"
 	],
-	"funding": {
-		"url": "https://github.com/sponsors/Boshen"
-	},
-	"main": "index.js",
-	"name": "oxc-resolver",
 	"napi": {
 		"binaryName": "resolver",
 		"packageName": "@oxc-resolver/binding",
