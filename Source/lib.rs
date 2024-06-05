@@ -225,17 +225,8 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
         ctx: &mut Ctx,
     ) -> Result<Resolution, ResolveError> {
         ctx.with_fully_specified(self.options.fully_specified);
-        let specifier = Specifier::parse(specifier).map_err(ResolveError::Specifier)?;
-        ctx.with_query_fragment(specifier.query, specifier.fragment);
         let cached_path = self.cache.value(path);
-        let cached_path = self.require(&cached_path, specifier.path(), ctx).or_else(|err| {
-            if err.is_ignore() {
-                return Err(err);
-            }
-            // enhanced-resolve: try fallback
-            self.load_alias(&cached_path, specifier.path(), &self.options.fallback, ctx)
-                .and_then(|value| value.ok_or(err))
-        })?;
+        let cached_path = self.require(&cached_path, specifier, ctx)?;
         let path = self.load_realpath(&cached_path)?;
         // enhanced-resolve: restrictions
         self.check_restrictions(&path)?;
@@ -266,11 +257,21 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
     ) -> Result<CachedPath, ResolveError> {
         ctx.test_for_infinite_recursion()?;
 
-        // enhanced-resolve: try fragment as path
-        if let Some(path) = self.try_fragment_as_path(cached_path, specifier, ctx) {
+        // enhanced-resolve: parse
+        let (parsed, try_fragment_as_path) = self.load_parse(cached_path, specifier, ctx)?;
+        if let Some(path) = try_fragment_as_path {
             return Ok(path);
         }
 
+        self.require_without_parse(cached_path, parsed.path(), ctx)
+    }
+
+    fn require_without_parse(
+        &self,
+        cached_path: &CachedPath,
+        specifier: &str,
+        ctx: &mut Ctx,
+    ) -> Result<CachedPath, ResolveError> {
         // tsconfig-paths
         if let Some(path) = self.load_tsconfig_paths(cached_path, specifier, &mut Ctx::default())? {
             return Ok(path);
@@ -281,7 +282,7 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
             return Ok(path);
         }
 
-        match Path::new(specifier).components().next() {
+        let result = match Path::new(specifier).components().next() {
             // 3. If X begins with './' or '/' or '../'
             Some(Component::RootDir | Component::Prefix(_)) => {
                 self.require_absolute(cached_path, specifier, ctx)
@@ -305,14 +306,31 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
                 // Set resolved the result of PACKAGE_RESOLVE(specifier, parentURL).
                 self.require_bare(cached_path, specifier, ctx)
             }
-        }
+        };
+
+        result.or_else(|err| {
+            if err.is_ignore() {
+                return Err(err);
+            }
+            // enhanced-resolve: try fallback
+            self.load_alias(cached_path, specifier, &self.options.fallback, ctx)
+                .and_then(|value| value.ok_or(err))
+        })
     }
 
+    // PACKAGE_RESOLVE(packageSpecifier, parentURL)
+    // 3. If packageSpecifier is a Node.js builtin module name, then
+    //   1. Return the string "node:" concatenated with packageSpecifier.
     fn require_core(&self, specifier: &str) -> Result<(), ResolveError> {
-        if self.options.builtin_modules
-            && (specifier.starts_with("node:") || NODEJS_BUILTINS.binary_search(&specifier).is_ok())
-        {
-            return Err(ResolveError::Builtin(specifier.to_string()));
+        if self.options.builtin_modules {
+            let starts_with_node = specifier.starts_with("node:");
+            if starts_with_node || NODEJS_BUILTINS.binary_search(&specifier).is_ok() {
+                let mut specifier = specifier.to_string();
+                if !starts_with_node {
+                    specifier = format!("node:{specifier}");
+                }
+                return Err(ResolveError::Builtin(specifier));
+            }
         }
         Ok(())
     }
@@ -401,7 +419,7 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
         self.load_package_self_or_node_modules(cached_path, specifier, ctx)
     }
 
-    /// Try fragment as part of the path
+    /// enhanced-resolve: ParsePlugin.
     ///
     /// It's allowed to escape # as \0# to avoid parsing it as fragment.
     /// enhanced-resolve will try to resolve requests containing `#` as path and as fragment,
@@ -409,21 +427,26 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
     /// When a # is resolved as path it will be escaped in the result. Here: `.../some\0#thing.js`.
     ///
     /// <https://github.com/webpack/enhanced-resolve#escaping>
-    fn try_fragment_as_path(
+    fn load_parse<'s>(
         &self,
         cached_path: &CachedPath,
-        specifier: &str,
+        specifier: &'s str,
         ctx: &mut Ctx,
-    ) -> Option<CachedPath> {
+    ) -> Result<(Specifier<'s>, Option<CachedPath>), ResolveError> {
+        let parsed = Specifier::parse(specifier).map_err(ResolveError::Specifier)?;
+        ctx.with_query_fragment(parsed.query, parsed.fragment);
+
+        // There is an edge-case where a request with # can be a path or a fragment -> try both
         if ctx.fragment.is_some() && ctx.query.is_none() {
+            let specifier = parsed.path();
             let fragment = ctx.fragment.take().unwrap();
             let path = format!("{specifier}{fragment}");
-            if let Ok(path) = self.require(cached_path, &path, ctx) {
-                return Some(path);
+            if let Ok(path) = self.require_without_parse(cached_path, &path, ctx) {
+                return Ok((parsed, Some(path)));
             }
             ctx.fragment.replace(fragment);
         }
-        None
+        Ok((parsed, None))
     }
 
     fn load_package_self_or_node_modules(
@@ -842,12 +865,10 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
             }
             return Err(ResolveError::Recursion);
         }
-        let specifier = Specifier::parse(new_specifier).map_err(ResolveError::Specifier)?;
-        ctx.with_query_fragment(specifier.query, specifier.fragment);
-        ctx.with_resolving_alias(specifier.path().to_string());
+        ctx.with_resolving_alias(new_specifier.to_string());
         ctx.with_fully_specified(false);
         let cached_path = self.cache.value(package_json.directory());
-        self.require(&cached_path, specifier.path(), ctx).map(Some)
+        self.require(&cached_path, new_specifier, ctx).map(Some)
     }
 
     /// enhanced-resolve: AliasPlugin for [ResolveOptions::alias] and [ResolveOptions::fallback].
@@ -878,23 +899,16 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
             for r in specifiers {
                 match r {
                     AliasValue::Path(alias_value) => {
-                        let new_specifier =
-                            Specifier::parse(alias_value).map_err(ResolveError::Specifier)?;
-                        // Resolve path without query and fragment
-                        let old_query = ctx.query.clone();
-                        let old_fragment = ctx.fragment.clone();
-                        ctx.with_query_fragment(new_specifier.query, new_specifier.fragment);
                         if let Some(path) = self.load_alias_value(
                             cached_path,
                             alias_key,
-                            new_specifier.path(), // pass in parsed alias value
+                            alias_value,
                             specifier,
                             ctx,
                             &mut should_stop,
                         )? {
                             return Ok(Some(path));
                         }
-                        ctx.with_query_fragment(old_query.as_deref(), old_fragment.as_deref());
                     }
                     AliasValue::Ignore => {
                         let path = cached_path.path().normalize_with(alias_key);
@@ -1118,6 +1132,11 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
         ctx: &mut Ctx,
     ) -> ResolveResult {
         let (package_name, subpath) = Self::parse_package_specifier(specifier);
+
+        // 3. If packageSpecifier is a Node.js builtin module name, then
+        //   1. Return the string "node:" concatenated with packageSpecifier.
+        self.require_core(package_name)?;
+
         // 11. While parentURL is not the file system root,
         for module_name in &self.options.modules {
             for cached_path in std::iter::successors(Some(cached_path), |p| p.parent()) {
@@ -1162,10 +1181,8 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
                         }
                     }
                     let subpath = format!(".{subpath}");
-                    let specifier = Specifier::parse(&subpath).map_err(ResolveError::Specifier)?;
                     ctx.with_fully_specified(false);
-                    ctx.with_query_fragment(specifier.query, specifier.fragment);
-                    return self.require(&cached_path, specifier.path(), ctx).map(Some);
+                    return self.require(&cached_path, &subpath, ctx).map(Some);
                 }
             }
         }
@@ -1499,19 +1516,9 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
             JSONValue::Object(target) => {
                 // 1. If exports contains any index property keys, as defined in ECMA-262 6.1.7 Array Index, throw an Invalid Package Configuration error.
                 // 2. For each property p of target, in object insertion order as,
-                for (i, (key, target_value)) in target.iter().enumerate() {
-                    // https://nodejs.org/api/packages.html#conditional-exports
-                    // "default" - the generic fallback that always matches. Can be a CommonJS or ES module file. This condition should always come last.
-                    // Note: node.js does not throw this but enhanced-resolve does.
-                    let is_default = key == "default";
-                    if i < target.len() - 1 && is_default {
-                        return Err(ResolveError::InvalidPackageConfigDefault(
-                            package_url.join("package.json"),
-                        ));
-                    }
-
+                for (key, target_value) in target {
                     // 1. If p equals "default" or conditions contains an entry for p, then
-                    if is_default || conditions.contains(key) {
+                    if key == "default" || conditions.contains(key) {
                         // 1. Let targetValue be the value of the p property in target.
                         // 2. Let resolved be the result of PACKAGE_TARGET_RESOLVE( packageURL, targetValue, patternMatch, isImports, conditions).
                         let resolved = self.package_target_resolve(
