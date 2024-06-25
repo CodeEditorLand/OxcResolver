@@ -2,6 +2,8 @@
 //!
 //! Node.js [CommonJS][cjs] and [ECMAScript][esm] Module Resolution.
 //!
+//! Released on [crates.io](https://crates.io/crates/oxc_resolver) and [npm](https://www.npmjs.com/package/oxc-resolver).
+//!
 //! A module resolution is the process of finding the file referenced by a module specifier in
 //! `import "specifier"` or `require("specifier")`.
 //!
@@ -71,7 +73,6 @@ use std::{
 
 use rustc_hash::FxHashSet;
 use serde_json::Value as JSONValue;
-use typescript_tsconfig_json::ExtendsField;
 
 pub use crate::{
     builtins::NODEJS_BUILTINS,
@@ -91,6 +92,7 @@ use crate::{
     package_json::JSONMap,
     path::{PathUtil, SLASH_START},
     specifier::Specifier,
+    tsconfig::ExtendsField,
     tsconfig::{ProjectReference, TsConfig},
 };
 
