@@ -647,11 +647,15 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
     }
 
     fn load_alias_or_file(&self, cached_path: &CachedPath, ctx: &mut Ctx) -> ResolveResult {
-        if let Some(package_json) =
-            cached_path.find_package_json(&self.cache.fs, &self.options, ctx)?
-        {
-            if let Some(path) = self.load_browser_field(cached_path, None, &package_json, ctx)? {
-                return Ok(Some(path));
+        if !self.options.alias_fields.is_empty() {
+            if let Some(package_json) =
+                cached_path.find_package_json(&self.cache.fs, &self.options, ctx)?
+            {
+                if let Some(path) =
+                    self.load_browser_field(cached_path, None, &package_json, ctx)?
+                {
+                    return Ok(Some(path));
+                }
             }
         }
         // enhanced-resolve: try file as alias
@@ -738,10 +742,12 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
         module_name: &str,
         ctx: &mut Ctx,
     ) -> Option<CachedPath> {
-        if cached_path.path().ends_with(module_name) {
-            Some(cached_path.clone())
-        } else if module_name == "node_modules" {
+        if module_name == "node_modules" {
             cached_path.cached_node_modules(&self.cache, ctx)
+        } else if cached_path.path().components().next_back()
+            == Some(Component::Normal(OsStr::new(module_name)))
+        {
+            Some(cached_path.clone())
         } else {
             cached_path.module_directory(module_name, &self.cache, ctx)
         }
