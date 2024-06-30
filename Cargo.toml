@@ -3,7 +3,7 @@ members  = ["napi"]
 resolver = "2"
 
 [package]
-version      = "1.8.2"
+version      = "1.9.1"
 name         = "oxc_resolver"
 authors      = ["Boshen <boshenc@gmail.com>"]
 categories   = ["development-tools"]
@@ -105,3 +105,14 @@ codspeed = ["criterion2/codspeed"]
 [package.metadata.docs.rs]
 all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
+
+# For napi
+[profile.release]
+# Configurations explicitly listed here for clarity.
+# Using the best options for performance.
+opt-level     = 3
+lto           = "fat"
+codegen-units = 1
+strip         = "symbols" # set to `false` for debug information
+debug         = false     # set to `true` for debug information
+panic         = "abort"   # Let it crash and force ourselves to write safe Rust.

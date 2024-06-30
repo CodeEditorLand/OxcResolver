@@ -6,7 +6,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.8.2](https://github.com/oxc-project/oxc_resolver/compare/oxc_resolver-v1.8.1...oxc_resolver-v1.9.0) - 2024-06-24
+## [1.9.1](https://github.com/oxc-project/oxc_resolver/compare/oxc_resolver-v1.9.0...oxc_resolver-v1.9.1) - 2024-06-29
+
+### Added
+- strip symbols and enable LTO ([#197](https://github.com/oxc-project/oxc_resolver/pull/197))
+
+### Other
+- improve call to `Path::ends_with` ([#199](https://github.com/oxc-project/oxc_resolver/pull/199))
+- list [profile.release] explicitly ([#198](https://github.com/oxc-project/oxc_resolver/pull/198))
+
+## [1.9.0](https://github.com/oxc-project/oxc-resolver/compare/oxc_resolver-v1.8.4...oxc_resolver-v1.9.0) - 2024-06-28
+
+### Added
+- export package.json `type` and `sideEffects` field by default for bundlers ([#196](https://github.com/oxc-project/oxc-resolver/pull/196))
+
+## [1.8.4](https://github.com/oxc-project/oxc_resolver/compare/oxc_resolver-v1.8.3...oxc_resolver-v1.8.4) - 2024-06-27
+
+### Other
+- skip searching for package.json when `alias_fields` is not provided ([#194](https://github.com/oxc-project/oxc_resolver/pull/194))
+
+## [1.8.3](https://github.com/oxc-project/oxc_resolver/compare/oxc_resolver-v1.8.3...oxc_resolver-v1.8.2) - 2024-06-26
+
+* *(napi*) release wasi build
+
+## [1.8.2](https://github.com/oxc-project/oxc_resolver/compare/oxc_resolver-v1.8.2...oxc_resolver-v1.8.1) - 2024-06-24
 
 ### Added
 - *(napi)* add async API ([#191](https://github.com/oxc-project/oxc_resolver/pull/191))
