@@ -3,7 +3,7 @@ members  = ["napi"]
 resolver = "2"
 
 [package]
-version      = "1.9.1"
+version      = "1.9.2"
 name         = "oxc_resolver"
 authors      = ["Boshen <boshenc@gmail.com>"]
 categories   = ["development-tools"]
@@ -74,7 +74,7 @@ name = "resolver"
 
 [dependencies]
 tracing = "0.1.40"
-dashmap = "5.5.3"
+dashmap = "6.0.1"
 serde = { version = "1.0.203", features = ["derive"] } # derive for Deserialize from package.json
 serde_json = { version = "1.0.117", features = [
   "preserve_order",
