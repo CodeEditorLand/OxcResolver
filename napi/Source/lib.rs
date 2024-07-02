@@ -10,9 +10,13 @@ use std::{
 use napi_derive::napi;
 use oxc_resolver::{ResolveOptions, Resolver};
 
-use self::options::{NapiResolveOptions, StrOrStrList};
+use self::{
+    options::{NapiResolveOptions, StrOrStrList},
+    tracing::init_tracing,
+};
 
 mod options;
+mod tracing;
 
 #[napi(object)]
 pub struct ResolveResult {
@@ -47,6 +51,7 @@ pub struct ResolverFactory {
 impl ResolverFactory {
     #[napi(constructor)]
     pub fn new(options: NapiResolveOptions) -> Self {
+        init_tracing();
         Self { resolver: Arc::new(Resolver::new(Self::normalize_options(options))) }
     }
 
@@ -70,17 +75,19 @@ impl ResolverFactory {
         self.resolver.clear_cache();
     }
 
+    /// Synchronously resolve `specifier` at an absolute path to a `directory`.
     #[allow(clippy::needless_pass_by_value)]
     #[napi]
-    pub fn sync(&self, path: String, request: String) -> ResolveResult {
-        let path = PathBuf::from(path);
+    pub fn sync(&self, directory: String, request: String) -> ResolveResult {
+        let path = PathBuf::from(directory);
         resolve(&self.resolver, &path, &request)
     }
 
+    /// Asynchronously resolve `specifier` at an absolute path to a `directory`.
     #[allow(clippy::needless_pass_by_value)]
     #[napi(js_name = "async")]
-    pub async fn resolve_async(&self, path: String, request: String) -> ResolveResult {
-        let path = PathBuf::from(path);
+    pub async fn resolve_async(&self, directory: String, request: String) -> ResolveResult {
+        let path = PathBuf::from(directory);
         let resolver = self.resolver.clone();
         tokio::spawn(async move { resolve(&resolver, &path, &request) }).await.unwrap()
     }
