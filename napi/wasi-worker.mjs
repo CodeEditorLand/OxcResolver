@@ -1,8 +1,8 @@
-import fs from "node:fs";
-import { createRequire } from "node:module";
-import { parse } from "node:path";
-import { WASI } from "node:wasi";
-import { parentPort, Worker } from "node:worker_threads";
+import fs from "fs";
+import { createRequire } from "module";
+import { parse } from "path";
+import { WASI } from "wasi";
+import { parentPort, Worker } from "worker_threads";
 
 const require = createRequire(import.meta.url);
 
