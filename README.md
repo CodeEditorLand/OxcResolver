@@ -33,7 +33,7 @@ Rust port of [enhanced-resolve].
 * supports in-memory file system via the `FileSystem` trait
 * contains `tracing` instrumentation
 
-## 🛠️ Usage
+## Usage
 
 The following usages apply to both Rust and Node.js; the code snippets are written in JavaScript.
 
