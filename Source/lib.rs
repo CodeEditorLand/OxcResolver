@@ -4,28 +4,32 @@
 //!
 //! Released on [crates.io](https://crates.io/crates/oxc_resolver) and [npm](https://www.npmjs.com/package/oxc-resolver).
 //!
-//! A module resolution is the process of finding the file referenced by a module specifier in
-//! `import "specifier"` or `require("specifier")`.
+//! A module resolution is the process of finding the file referenced by a
+//! module specifier in `import "specifier"` or `require("specifier")`.
 //!
-//! All [configuration options](ResolveOptions) are aligned with webpack's [enhanced-resolve].
+//! All [configuration options](ResolveOptions) are aligned with webpack's
+//! [enhanced-resolve].
 //!
 //! ## Terminology
 //!
 //! ### Specifier
 //!
 //! For [CommonJS modules][cjs],
-//! the specifier is the string passed to the `require` function. e.g. `"id"` in `require("id")`.
+//! the specifier is the string passed to the `require` function. e.g. `"id"` in
+//! `require("id")`.
 //!
 //! For [ECMAScript modules][esm],
-//! the specifier of an `import` statement is the string after the `from` keyword,
-//! e.g. `'specifier'` in `import 'specifier'` or `import { sep } from 'specifier'`.
-//! Specifiers are also used in export from statements, and as the argument to an `import()` expression.
+//! the specifier of an `import` statement is the string after the `from`
+//! keyword, e.g. `'specifier'` in `import 'specifier'` or `import { sep } from
+//! 'specifier'`. Specifiers are also used in export from statements, and as the
+//! argument to an `import()` expression.
 //!
 //! This is also named "request" in some places.
 //!
 //! ## References:
 //!
-//! * Algorithm adapted from Node.js [CommonJS Module Resolution Algorithm] and [ECMAScript Module Resolution Algorithm].
+//! * Algorithm adapted from Node.js [CommonJS Module Resolution Algorithm] and
+//!   [ECMAScript Module Resolution Algorithm].
 //! * Tests are ported from [enhanced-resolve].
 //! * Some code is adapted from [parcel-resolver].
 //! * The documentation is copied from [webpack's resolve configuration](https://webpack.js.org/configuration/resolve).
@@ -40,7 +44,6 @@
 //! ## Feature flags
 #![cfg_attr(feature = "document-features", doc = document_features::document_features!())]
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]
-//!
 //! ## Example
 //!
 //! ```rust,ignore
@@ -79,8 +82,13 @@ pub use crate::{
 	error::{JSONError, ResolveError, SpecifierError},
 	file_system::{FileMetadata, FileSystem},
 	options::{
-		Alias, AliasValue, EnforceExtension, ResolveOptions, Restriction,
-		TsconfigOptions, TsconfigReferences,
+		Alias,
+		AliasValue,
+		EnforceExtension,
+		ResolveOptions,
+		Restriction,
+		TsconfigOptions,
+		TsconfigReferences,
 	},
 	package_json::PackageJson,
 	resolution::Resolution,
@@ -92,8 +100,7 @@ use crate::{
 	package_json::JSONMap,
 	path::{PathUtil, SLASH_START},
 	specifier::Specifier,
-	tsconfig::ExtendsField,
-	tsconfig::{ProjectReference, TsConfig},
+	tsconfig::{ExtendsField, ProjectReference, TsConfig},
 };
 
 type ResolveResult = Result<Option<CachedPath>, ResolveError>;
@@ -102,84 +109,82 @@ type ResolveResult = Result<Option<CachedPath>, ResolveError>;
 #[derive(Debug, Default, Clone)]
 pub struct ResolveContext {
 	/// Files that was found on file system
-	pub file_dependencies: FxHashSet<PathBuf>,
+	pub file_dependencies:FxHashSet<PathBuf>,
 
 	/// Dependencies that was not found on file system
-	pub missing_dependencies: FxHashSet<PathBuf>,
+	pub missing_dependencies:FxHashSet<PathBuf>,
 }
 
 /// Resolver with the current operating system as the file system
 pub type Resolver = ResolverGeneric<FileSystemOs>;
 
-/// Generic implementation of the resolver, can be configured by the [FileSystem] trait
+/// Generic implementation of the resolver, can be configured by the
+/// [FileSystem] trait
 pub struct ResolverGeneric<Fs> {
-	options: ResolveOptions,
-	cache: Arc<Cache<Fs>>,
+	options:ResolveOptions,
+	cache:Arc<Cache<Fs>>,
 }
 
 impl<Fs> fmt::Debug for ResolverGeneric<Fs> {
-	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+	fn fmt(&self, f:&mut fmt::Formatter<'_>) -> fmt::Result {
 		self.options.fmt(f)
 	}
 }
 
-impl<Fs: FileSystem + Default> Default for ResolverGeneric<Fs> {
-	fn default() -> Self {
-		Self::new(ResolveOptions::default())
-	}
+impl<Fs:FileSystem + Default> Default for ResolverGeneric<Fs> {
+	fn default() -> Self { Self::new(ResolveOptions::default()) }
 }
 
-impl<Fs: FileSystem + Default> ResolverGeneric<Fs> {
-	pub fn new(options: ResolveOptions) -> Self {
+impl<Fs:FileSystem + Default> ResolverGeneric<Fs> {
+	pub fn new(options:ResolveOptions) -> Self {
 		Self {
-			options: options.sanitize(),
-			cache: Arc::new(Cache::new(Fs::default())),
+			options:options.sanitize(),
+			cache:Arc::new(Cache::new(Fs::default())),
 		}
 	}
 }
 
-impl<Fs: FileSystem> ResolverGeneric<Fs> {
+impl<Fs:FileSystem> ResolverGeneric<Fs> {
 	pub fn new_with_file_system(
-		file_system: Fs,
-		options: ResolveOptions,
+		file_system:Fs,
+		options:ResolveOptions,
 	) -> Self {
 		Self {
-			cache: Arc::new(Cache::new(file_system)),
-			options: options.sanitize(),
+			cache:Arc::new(Cache::new(file_system)),
+			options:options.sanitize(),
 		}
 	}
 
 	/// Clone the resolver using the same underlying cache.
 	#[must_use]
-	pub fn clone_with_options(&self, options: ResolveOptions) -> Self {
-		Self { options: options.sanitize(), cache: Arc::clone(&self.cache) }
+	pub fn clone_with_options(&self, options:ResolveOptions) -> Self {
+		Self { options:options.sanitize(), cache:Arc::clone(&self.cache) }
 	}
 
 	/// Returns the options.
-	pub fn options(&self) -> &ResolveOptions {
-		&self.options
-	}
+	pub fn options(&self) -> &ResolveOptions { &self.options }
 
 	/// Clear the underlying cache.
-	pub fn clear_cache(&self) {
-		self.cache.clear();
-	}
+	pub fn clear_cache(&self) { self.cache.clear(); }
 
 	/// Resolve `specifier` at an absolute path to a `directory`.
 	///
-	/// A specifier is the string passed to require or import, i.e. `require("specifier")` or `import "specifier"`.
+	/// A specifier is the string passed to require or import, i.e.
+	/// `require("specifier")` or `import "specifier"`.
 	///
-	/// `directory` must be an **absolute** path to a directory where the specifier is resolved against.
-	/// For CommonJS modules, it is the `__dirname` variable that contains the absolute path to the folder containing current module.
-	/// For ECMAScript modules, it is the value of `import.meta.url`.
+	/// `directory` must be an **absolute** path to a directory where the
+	/// specifier is resolved against. For CommonJS modules, it is the
+	/// `__dirname` variable that contains the absolute path to the folder
+	/// containing current module. For ECMAScript modules, it is the value of
+	/// `import.meta.url`.
 	///
 	/// # Errors
 	///
 	/// * See [ResolveError]
-	pub fn resolve<P: AsRef<Path>>(
+	pub fn resolve<P:AsRef<Path>>(
 		&self,
-		directory: P,
-		specifier: &str,
+		directory:P,
+		specifier:&str,
 	) -> Result<Resolution, ResolveError> {
 		let mut ctx = Ctx::default();
 		self.resolve_tracing(directory.as_ref(), specifier, &mut ctx)
@@ -190,11 +195,11 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
 	/// # Errors
 	///
 	/// * See [ResolveError]
-	pub fn resolve_with_context<P: AsRef<Path>>(
+	pub fn resolve_with_context<P:AsRef<Path>>(
 		&self,
-		directory: P,
-		specifier: &str,
-		resolve_context: &mut ResolveContext,
+		directory:P,
+		specifier:&str,
+		resolve_context:&mut ResolveContext,
 	) -> Result<Resolution, ResolveError> {
 		let mut ctx = Ctx::default();
 		ctx.init_file_dependencies();
@@ -212,9 +217,9 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
 	/// Wrap `resolve_impl` with `tracing` information
 	fn resolve_tracing(
 		&self,
-		directory: &Path,
-		specifier: &str,
-		ctx: &mut Ctx,
+		directory:&Path,
+		specifier:&str,
+		ctx:&mut Ctx,
 	) -> Result<Resolution, ResolveError> {
 		let span = tracing::debug_span!("resolve", path = ?directory, specifier = specifier);
 		let _enter = span.enter();
@@ -232,9 +237,9 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
 
 	fn resolve_impl(
 		&self,
-		path: &Path,
-		specifier: &str,
-		ctx: &mut Ctx,
+		path:&Path,
+		specifier:&str,
+		ctx:&mut Ctx,
 	) -> Result<Resolution, ResolveError> {
 		ctx.with_fully_specified(self.options.fully_specified);
 		let cached_path = self.cache.value(path);
@@ -253,8 +258,8 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
 		}
 		Ok(Resolution {
 			path,
-			query: ctx.query.take(),
-			fragment: ctx.fragment.take(),
+			query:ctx.query.take(),
+			fragment:ctx.fragment.take(),
 			package_json,
 		})
 	}
@@ -267,9 +272,9 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
 	/// <https://nodejs.org/api/modules.html#all-together>
 	fn require(
 		&self,
-		cached_path: &CachedPath,
-		specifier: &str,
-		ctx: &mut Ctx,
+		cached_path:&CachedPath,
+		specifier:&str,
+		ctx:&mut Ctx,
 	) -> Result<CachedPath, ResolveError> {
 		ctx.test_for_infinite_recursion()?;
 
@@ -285,9 +290,9 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
 
 	fn require_without_parse(
 		&self,
-		cached_path: &CachedPath,
-		specifier: &str,
-		ctx: &mut Ctx,
+		cached_path:&CachedPath,
+		specifier:&str,
+		ctx:&mut Ctx,
 	) -> Result<CachedPath, ResolveError> {
 		// tsconfig-paths
 		if let Some(path) = self.load_tsconfig_paths(
@@ -326,7 +331,8 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
 
 				// (ESM) 5. Otherwise,
 				// Note: specifier is now a bare specifier.
-				// Set resolved the result of PACKAGE_RESOLVE(specifier, parentURL).
+				// Set resolved the result of PACKAGE_RESOLVE(specifier,
+				// parentURL).
 				self.require_bare(cached_path, specifier, ctx)
 			},
 		};
@@ -344,7 +350,7 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
 	// PACKAGE_RESOLVE(packageSpecifier, parentURL)
 	// 3. If packageSpecifier is a Node.js builtin module name, then
 	//   1. Return the string "node:" concatenated with packageSpecifier.
-	fn require_core(&self, specifier: &str) -> Result<(), ResolveError> {
+	fn require_core(&self, specifier:&str) -> Result<(), ResolveError> {
 		if self.options.builtin_modules {
 			let starts_with_node = specifier.starts_with("node:");
 			if starts_with_node
@@ -362,9 +368,9 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
 
 	fn require_absolute(
 		&self,
-		cached_path: &CachedPath,
-		specifier: &str,
-		ctx: &mut Ctx,
+		cached_path:&CachedPath,
+		specifier:&str,
+		ctx:&mut Ctx,
 	) -> Result<CachedPath, ResolveError> {
 		// Make sure only path prefixes gets called
 		debug_assert!(Path::new(specifier).components().next().is_some_and(
@@ -396,16 +402,20 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
 	// 3. If X begins with './' or '/' or '../'
 	fn require_relative(
 		&self,
-		cached_path: &CachedPath,
-		specifier: &str,
-		ctx: &mut Ctx,
+		cached_path:&CachedPath,
+		specifier:&str,
+		ctx:&mut Ctx,
 	) -> Result<CachedPath, ResolveError> {
 		// Make sure only relative or normal paths gets called
 		debug_assert!(Path::new(specifier).components().next().is_some_and(
-			|c| matches!(
-				c,
-				Component::CurDir | Component::ParentDir | Component::Normal(_)
-			)
+			|c| {
+				matches!(
+					c,
+					Component::CurDir
+						| Component::ParentDir
+						| Component::Normal(_)
+				)
+			}
 		));
 		let path = cached_path.path().normalize_with(specifier);
 		let cached_path = self.cache.value(&path);
@@ -422,9 +432,9 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
 
 	fn require_hash(
 		&self,
-		cached_path: &CachedPath,
-		specifier: &str,
-		ctx: &mut Ctx,
+		cached_path:&CachedPath,
+		specifier:&str,
+		ctx:&mut Ctx,
 	) -> Result<CachedPath, ResolveError> {
 		debug_assert_eq!(specifier.chars().next(), Some('#'));
 		// a. LOAD_PACKAGE_IMPORTS(X, dirname(Y))
@@ -438,15 +448,17 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
 
 	fn require_bare(
 		&self,
-		cached_path: &CachedPath,
-		specifier: &str,
-		ctx: &mut Ctx,
+		cached_path:&CachedPath,
+		specifier:&str,
+		ctx:&mut Ctx,
 	) -> Result<CachedPath, ResolveError> {
 		// Make sure no other path prefixes gets called
-		debug_assert!(Path::new(specifier)
-			.components()
-			.next()
-			.is_some_and(|c| matches!(c, Component::Normal(_))));
+		debug_assert!(
+			Path::new(specifier)
+				.components()
+				.next()
+				.is_some_and(|c| matches!(c, Component::Normal(_)))
+		);
 		if self.options.prefer_relative {
 			if let Ok(path) = self.require_relative(cached_path, specifier, ctx)
 			{
@@ -459,22 +471,24 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
 	/// enhanced-resolve: ParsePlugin.
 	///
 	/// It's allowed to escape # as \0# to avoid parsing it as fragment.
-	/// enhanced-resolve will try to resolve requests containing `#` as path and as fragment,
-	/// so it will automatically figure out if `./some#thing` means `.../some.js#thing` or `.../some#thing.js`.
-	/// When a # is resolved as path it will be escaped in the result. Here: `.../some\0#thing.js`.
+	/// enhanced-resolve will try to resolve requests containing `#` as path and
+	/// as fragment, so it will automatically figure out if `./some#thing`
+	/// means `.../some.js#thing` or `.../some#thing.js`. When a # is resolved
+	/// as path it will be escaped in the result. Here: `.../some\0#thing.js`.
 	///
 	/// <https://github.com/webpack/enhanced-resolve#escaping>
 	fn load_parse<'s>(
 		&self,
-		cached_path: &CachedPath,
-		specifier: &'s str,
-		ctx: &mut Ctx,
+		cached_path:&CachedPath,
+		specifier:&'s str,
+		ctx:&mut Ctx,
 	) -> Result<(Specifier<'s>, Option<CachedPath>), ResolveError> {
 		let parsed =
 			Specifier::parse(specifier).map_err(ResolveError::Specifier)?;
 		ctx.with_query_fragment(parsed.query, parsed.fragment);
 
-		// There is an edge-case where a request with # can be a path or a fragment -> try both
+		// There is an edge-case where a request with # can be a path or a
+		// fragment -> try both
 		if ctx.fragment.is_some() && ctx.query.is_none() {
 			let specifier = parsed.path();
 			let fragment = ctx.fragment.take().unwrap();
@@ -491,9 +505,9 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
 
 	fn load_package_self_or_node_modules(
 		&self,
-		cached_path: &CachedPath,
-		specifier: &str,
-		ctx: &mut Ctx,
+		cached_path:&CachedPath,
+		specifier:&str,
+		ctx:&mut Ctx,
 	) -> Result<CachedPath, ResolveError> {
 		let (_, subpath) = Self::parse_package_specifier(specifier);
 		if subpath.is_empty() {
@@ -518,9 +532,9 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
 	/// LOAD_PACKAGE_IMPORTS(X, DIR)
 	fn load_package_imports(
 		&self,
-		cached_path: &CachedPath,
-		specifier: &str,
-		ctx: &mut Ctx,
+		cached_path:&CachedPath,
+		specifier:&str,
+		ctx:&mut Ctx,
 	) -> ResolveResult {
 		// 1. Find the closest package scope SCOPE to DIR.
 		// 2. If no scope was found, return.
@@ -533,7 +547,8 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
 			return Ok(None);
 		};
 		// 3. If the SCOPE/package.json "imports" is null or undefined, return.
-		// 4. let MATCH = PACKAGE_IMPORTS_RESOLVE(X, pathToFileURL(SCOPE), ["node", "require"]) defined in the ESM resolver.
+		// 4. let MATCH = PACKAGE_IMPORTS_RESOLVE(X, pathToFileURL(SCOPE),
+		//    ["node", "require"]) defined in the ESM resolver.
 		if let Some(path) =
 			self.package_imports_resolve(specifier, &package_json, ctx)?
 		{
@@ -545,8 +560,8 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
 
 	fn load_as_file(
 		&self,
-		cached_path: &CachedPath,
-		ctx: &mut Ctx,
+		cached_path:&CachedPath,
+		ctx:&mut Ctx,
 	) -> ResolveResult {
 		// enhanced-resolve feature: extension_alias
 		if let Some(path) = self.load_extension_alias(cached_path, ctx)? {
@@ -571,11 +586,12 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
 
 	fn load_as_directory(
 		&self,
-		cached_path: &CachedPath,
-		ctx: &mut Ctx,
+		cached_path:&CachedPath,
+		ctx:&mut Ctx,
 	) -> ResolveResult {
-		// TODO: Only package.json is supported, so warn about having other values
-		// Checking for empty files is needed for omitting checks on package.json
+		// TODO: Only package.json is supported, so warn about having other
+		// values Checking for empty files is needed for omitting checks on
+		// package.json
 		// 1. If X/package.json is a file,
 		if !self.options.description_files.is_empty() {
 			// a. Parse X/package.json, and look for "main" field.
@@ -609,9 +625,9 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
 
 	fn load_as_file_or_directory(
 		&self,
-		cached_path: &CachedPath,
-		specifier: &str,
-		ctx: &mut Ctx,
+		cached_path:&CachedPath,
+		specifier:&str,
+		ctx:&mut Ctx,
 	) -> ResolveResult {
 		if self.options.resolve_to_context {
 			return Ok(cached_path
@@ -633,9 +649,9 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
 
 	fn load_extensions(
 		&self,
-		path: &CachedPath,
-		extensions: &[String],
-		ctx: &mut Ctx,
+		path:&CachedPath,
+		extensions:&[String],
+		ctx:&mut Ctx,
 	) -> ResolveResult {
 		if ctx.fully_specified {
 			return Ok(None);
@@ -655,7 +671,7 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
 
 	fn load_realpath(
 		&self,
-		cached_path: &CachedPath,
+		cached_path:&CachedPath,
 	) -> Result<PathBuf, ResolveError> {
 		if self.options.symlinks {
 			cached_path.realpath(&self.cache.fs).map_err(ResolveError::from)
@@ -664,9 +680,9 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
 		}
 	}
 
-	fn check_restrictions(&self, path: &Path) -> Result<(), ResolveError> {
+	fn check_restrictions(&self, path:&Path) -> Result<(), ResolveError> {
 		// https://github.com/webpack/enhanced-resolve/blob/a998c7d218b7a9ec2461fc4fddd1ad5dd7687485/lib/RestrictionsPlugin.js#L19-L24
-		fn is_inside(path: &Path, parent: &Path) -> bool {
+		fn is_inside(path:&Path, parent:&Path) -> bool {
 			if !path.starts_with(parent) {
 				return false;
 			}
@@ -688,7 +704,7 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
 				Restriction::RegExp(_) => {
 					return Err(ResolveError::Unimplemented(
 						"Restriction with regex",
-					))
+					));
 				},
 			}
 		}
@@ -697,8 +713,8 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
 
 	fn load_index(
 		&self,
-		cached_path: &CachedPath,
-		ctx: &mut Ctx,
+		cached_path:&CachedPath,
+		ctx:&mut Ctx,
 	) -> ResolveResult {
 		for main_file in &self.options.main_files {
 			let main_path = cached_path.path().normalize_with(main_file);
@@ -710,9 +726,12 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
 					return Ok(Some(path));
 				}
 			}
-			// 1. If X/index.js is a file, load X/index.js as JavaScript text. STOP
-			// 2. If X/index.json is a file, parse X/index.json to a JavaScript object. STOP
-			// 3. If X/index.node is a file, load X/index.node as binary addon. STOP
+			// 1. If X/index.js is a file, load X/index.js as JavaScript text.
+			//    STOP
+			// 2. If X/index.json is a file, parse X/index.json to a JavaScript
+			//    object. STOP
+			// 3. If X/index.node is a file, load X/index.node as binary addon.
+			//    STOP
 			if let Some(path) = self.load_extensions(
 				&cached_path,
 				&self.options.extensions,
@@ -726,8 +745,8 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
 
 	fn load_alias_or_file(
 		&self,
-		cached_path: &CachedPath,
-		ctx: &mut Ctx,
+		cached_path:&CachedPath,
+		ctx:&mut Ctx,
 	) -> ResolveResult {
 		if !self.options.alias_fields.is_empty() {
 			if let Some(package_json) = cached_path.find_package_json(
@@ -763,9 +782,9 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
 
 	fn load_node_modules(
 		&self,
-		cached_path: &CachedPath,
-		specifier: &str,
-		ctx: &mut Ctx,
+		cached_path:&CachedPath,
+		specifier:&str,
+		ctx:&mut Ctx,
 	) -> ResolveResult {
 		#[cfg(feature = "yarn_pnp")]
 		{
@@ -793,10 +812,11 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
 				else {
 					continue;
 				};
-				// Optimize node_modules lookup by inspecting whether the package exists
-				// From LOAD_PACKAGE_EXPORTS(X, DIR)
-				// 1. Try to interpret X as a combination of NAME and SUBPATH where the name
-				//    may have a @scope/ prefix and the subpath begins with a slash (`/`).
+				// Optimize node_modules lookup by inspecting whether the
+				// package exists From LOAD_PACKAGE_EXPORTS(X, DIR)
+				// 1. Try to interpret X as a combination of NAME and SUBPATH
+				//    where the name may have a @scope/ prefix and the subpath
+				//    begins with a slash (`/`).
 				if !package_name.is_empty() {
 					let package_path =
 						cached_path.path().normalize_with(package_name);
@@ -813,12 +833,14 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
 							return Ok(Some(path));
 						}
 					} else {
-						// foo/node_modules/package_name is not a directory, so useless to check inside it
+						// foo/node_modules/package_name is not a directory, so
+						// useless to check inside it
 						if !subpath.is_empty() {
 							continue;
 						}
-						// Skip if the directory lead to the scope package does not exist
-						// i.e. `foo/node_modules/@scope` is not a directory for `foo/node_modules/@scope/package`
+						// Skip if the directory lead to the scope package does
+						// not exist i.e. `foo/node_modules/@scope` is not
+						// a directory for `foo/node_modules/@scope/package`
 						if package_name.starts_with('@') {
 							if let Some(path) = cached_path.parent() {
 								if !path.is_dir(&self.cache.fs, ctx) {
@@ -850,9 +872,9 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
 	#[cfg(feature = "yarn_pnp")]
 	fn load_pnp(
 		&self,
-		cached_path: &CachedPath,
-		specifier: &str,
-		ctx: &mut Ctx,
+		cached_path:&CachedPath,
+		specifier:&str,
+		ctx:&mut Ctx,
 	) -> Result<Option<CachedPath>, ResolveError> {
 		let Some(pnp_manifest) = &self.options.pnp_manifest else {
 			return Ok(None);
@@ -893,9 +915,9 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
 
 	fn get_module_directory(
 		&self,
-		cached_path: &CachedPath,
-		module_name: &str,
-		ctx: &mut Ctx,
+		cached_path:&CachedPath,
+		module_name:&str,
+		ctx:&mut Ctx,
 	) -> Option<CachedPath> {
 		if module_name == "node_modules" {
 			cached_path.cached_node_modules(&self.cache, ctx)
@@ -910,13 +932,13 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
 
 	fn load_package_exports(
 		&self,
-		specifier: &str,
-		subpath: &str,
-		cached_path: &CachedPath,
-		ctx: &mut Ctx,
+		specifier:&str,
+		subpath:&str,
+		cached_path:&CachedPath,
+		ctx:&mut Ctx,
 	) -> ResolveResult {
-		// 2. If X does not match this pattern or DIR/NAME/package.json is not a file,
-		//    return.
+		// 2. If X does not match this pattern or DIR/NAME/package.json is not a
+		//    file, return.
 		let Some(package_json) =
 			cached_path.package_json(&self.cache.fs, &self.options, ctx)?
 		else {
@@ -924,8 +946,9 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
 		};
 		// 3. Parse DIR/NAME/package.json, and look for "exports" field.
 		// 4. If "exports" is null or undefined, return.
-		// 5. let MATCH = PACKAGE_EXPORTS_RESOLVE(pathToFileURL(DIR/NAME), "." + SUBPATH,
-		//    `package.json` "exports", ["node", "require"]) defined in the ESM resolver.
+		// 5. let MATCH = PACKAGE_EXPORTS_RESOLVE(pathToFileURL(DIR/NAME), "." +
+		//    SUBPATH, `package.json` "exports", ["node", "require"]) defined in
+		//    the ESM resolver.
 		// Note: The subpath is not prepended with a dot on purpose
 		for exports in package_json.exports_fields(&self.options.exports_fields)
 		{
@@ -944,9 +967,9 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
 
 	fn load_package_self(
 		&self,
-		cached_path: &CachedPath,
-		specifier: &str,
-		ctx: &mut Ctx,
+		cached_path:&CachedPath,
+		specifier:&str,
+		ctx:&mut Ctx,
 	) -> ResolveResult {
 		// 1. Find the closest package scope SCOPE to DIR.
 		// 2. If no scope was found, return.
@@ -959,17 +982,19 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
 			return Ok(None);
 		};
 		// 3. If the SCOPE/package.json "exports" is null or undefined, return.
-		// 4. If the SCOPE/package.json "name" is not the first segment of X, return.
+		// 4. If the SCOPE/package.json "name" is not the first segment of X,
+		//    return.
 		if let Some(subpath) =
 			package_json.name.as_ref().and_then(|package_name| {
 				Self::strip_package_name(specifier, package_name)
 			}) {
 			// 5. let MATCH = PACKAGE_EXPORTS_RESOLVE(pathToFileURL(SCOPE),
-			// "." + X.slice("name".length), `package.json` "exports", ["node", "require"])
-			// defined in the ESM resolver.
+			// "." + X.slice("name".length), `package.json` "exports", ["node",
+			// "require"]) defined in the ESM resolver.
 			let package_url = package_json.directory();
 			// Note: The subpath is not prepended with a dot on purpose
-			// because `package_exports_resolve` matches subpath without the leading dot.
+			// because `package_exports_resolve` matches subpath without the
+			// leading dot.
 			for exports in
 				package_json.exports_fields(&self.options.exports_fields)
 			{
@@ -999,14 +1024,16 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
 	/// RESOLVE_ESM_MATCH(MATCH)
 	fn resolve_esm_match(
 		&self,
-		specifier: &str,
-		cached_path: &CachedPath,
-		ctx: &mut Ctx,
+		specifier:&str,
+		cached_path:&CachedPath,
+		ctx:&mut Ctx,
 	) -> ResolveResult {
 		// 1. let RESOLVED_PATH = fileURLToPath(MATCH)
-		// 2. If the file at RESOLVED_PATH exists, load RESOLVED_PATH as its extension format. STOP
+		// 2. If the file at RESOLVED_PATH exists, load RESOLVED_PATH as its
+		//    extension format. STOP
 		//
-		// Non-compliant ESM can result in a directory, so directory is tried as well.
+		// Non-compliant ESM can result in a directory, so directory is tried as
+		// well.
 		if let Some(path) =
 			self.load_as_file_or_directory(cached_path, "", ctx)?
 		{
@@ -1019,10 +1046,10 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
 	/// enhanced-resolve: AliasFieldPlugin for [ResolveOptions::alias_fields]
 	fn load_browser_field(
 		&self,
-		cached_path: &CachedPath,
-		module_specifier: Option<&str>,
-		package_json: &PackageJson,
-		ctx: &mut Ctx,
+		cached_path:&CachedPath,
+		module_specifier:Option<&str>,
+		package_json:&PackageJson,
+		ctx:&mut Ctx,
 	) -> ResolveResult {
 		let path = cached_path.path();
 		let Some(new_specifier) = package_json.resolve_browser_field(
@@ -1058,13 +1085,14 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
 		self.require(&cached_path, new_specifier, ctx).map(Some)
 	}
 
-	/// enhanced-resolve: AliasPlugin for [ResolveOptions::alias] and [ResolveOptions::fallback].
+	/// enhanced-resolve: AliasPlugin for [ResolveOptions::alias] and
+	/// [ResolveOptions::fallback].
 	fn load_alias(
 		&self,
-		cached_path: &CachedPath,
-		specifier: &str,
-		aliases: &Alias,
-		ctx: &mut Ctx,
+		cached_path:&CachedPath,
+		specifier:&str,
+		aliases:&Alias,
+		ctx:&mut Ctx,
 	) -> ResolveResult {
 		for (alias_key_raw, specifiers) in aliases {
 			let alias_key =
@@ -1117,12 +1145,12 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
 
 	fn load_alias_value(
 		&self,
-		cached_path: &CachedPath,
-		alias_key: &str,
-		alias_value: &str,
-		request: &str,
-		ctx: &mut Ctx,
-		should_stop: &mut bool,
+		cached_path:&CachedPath,
+		alias_key:&str,
+		alias_value:&str,
+		request:&str,
+		ctx:&mut Ctx,
+		should_stop:&mut bool,
 	) -> ResolveResult {
 		if request != alias_value
 			&& !request
@@ -1153,7 +1181,7 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
 			{
 				Err(
 					ResolveError::NotFound(_)
-					| ResolveError::MatchedAliasNotFound(_, _),
+					| ResolveError::MatchedAliasNotFound(..),
 				) => Ok(None),
 				Ok(path) => return Ok(Some(path)),
 				Err(err) => return Err(err),
@@ -1169,11 +1197,12 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
 	///
 	/// # Errors
 	///
-	/// * [ResolveError::ExtensionAlias]: When all of the aliased extensions are not found
+	/// * [ResolveError::ExtensionAlias]: When all of the aliased extensions are
+	///   not found
 	fn load_extension_alias(
 		&self,
-		cached_path: &CachedPath,
-		ctx: &mut Ctx,
+		cached_path:&CachedPath,
+		ctx:&mut Ctx,
 	) -> ResolveResult {
 		if self.options.extension_alias.is_empty() {
 			return Ok(None);
@@ -1229,11 +1258,12 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
 
 	/// enhanced-resolve: RootsPlugin
 	///
-	/// A list of directories where requests of server-relative URLs (starting with '/') are resolved,
-	/// defaults to context configuration option.
+	/// A list of directories where requests of server-relative URLs (starting
+	/// with '/') are resolved, defaults to context configuration option.
 	///
-	/// On non-Windows systems these requests are resolved as an absolute path first.
-	fn load_roots(&self, specifier: &str, ctx: &mut Ctx) -> Option<CachedPath> {
+	/// On non-Windows systems these requests are resolved as an absolute path
+	/// first.
+	fn load_roots(&self, specifier:&str, ctx:&mut Ctx) -> Option<CachedPath> {
 		if self.options.roots.is_empty() {
 			return None;
 		}
@@ -1252,15 +1282,16 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
 
 	fn load_tsconfig_paths(
 		&self,
-		cached_path: &CachedPath,
-		specifier: &str,
-		ctx: &mut Ctx,
+		cached_path:&CachedPath,
+		specifier:&str,
+		ctx:&mut Ctx,
 	) -> ResolveResult {
 		let Some(tsconfig_options) = &self.options.tsconfig else {
 			return Ok(None);
 		};
 		let tsconfig = self.load_tsconfig(
-			/* root */ true,
+			// root
+			true,
 			&tsconfig_options.config_file,
 			&tsconfig_options.references,
 		)?;
@@ -1276,9 +1307,9 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
 
 	fn load_tsconfig(
 		&self,
-		root: bool,
-		path: &Path,
-		references: &TsconfigReferences,
+		root:bool,
+		path:&Path,
+		references:&TsconfigReferences,
 	) -> Result<Arc<TsConfig>, ResolveError> {
 		self.cache.tsconfig(root, path, |tsconfig| {
 			let directory = self.cache.value(tsconfig.directory());
@@ -1292,18 +1323,21 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
 							&directory, tsconfig, s,
 						)?]
 					},
-					ExtendsField::Multiple(specifiers) => specifiers
-						.iter()
-						.map(|s| {
-							self.get_extended_tsconfig_path(
-								&directory, tsconfig, s,
-							)
-						})
-						.collect::<Result<Vec<PathBuf>, ResolveError>>()?,
+					ExtendsField::Multiple(specifiers) => {
+						specifiers
+							.iter()
+							.map(|s| {
+								self.get_extended_tsconfig_path(
+									&directory, tsconfig, s,
+								)
+							})
+							.collect::<Result<Vec<PathBuf>, ResolveError>>()?
+					},
 				};
 				for extended_tsconfig_path in extended_tsconfig_paths {
 					let extended_tsconfig = self.load_tsconfig(
-						/* root */ false,
+						// root
+						false,
 						&extended_tsconfig_path,
 						&TsconfigReferences::Disabled,
 					)?;
@@ -1320,9 +1354,11 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
 				TsconfigReferences::Paths(paths) => {
 					tsconfig.references = paths
 						.iter()
-						.map(|path| ProjectReference {
-							path: path.clone(),
-							tsconfig: None,
+						.map(|path| {
+							ProjectReference {
+								path:path.clone(),
+								tsconfig:None,
+							}
 						})
 						.collect();
 				},
@@ -1333,7 +1369,8 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
 					let reference_tsconfig_path =
 						directory.normalize_with(&reference.path);
 					let tsconfig = self.cache.tsconfig(
-						/* root */ true,
+						// root
+						true,
 						&reference_tsconfig_path,
 						|reference_tsconfig| {
 							if reference_tsconfig.path == tsconfig.path {
@@ -1355,21 +1392,23 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
 
 	fn get_extended_tsconfig_path(
 		&self,
-		directory: &CachedPath,
-		tsconfig: &TsConfig,
-		specifier: &str,
+		directory:&CachedPath,
+		tsconfig:&TsConfig,
+		specifier:&str,
 	) -> Result<PathBuf, ResolveError> {
 		match specifier.as_bytes().first() {
-			None => Err(ResolveError::Specifier(SpecifierError::Empty(
-				specifier.to_string(),
-			))),
+			None => {
+				Err(ResolveError::Specifier(SpecifierError::Empty(
+					specifier.to_string(),
+				)))
+			},
 			Some(b'/') => Ok(PathBuf::from(specifier)),
 			Some(b'.') => Ok(tsconfig.directory().normalize_with(specifier)),
-			_ => self
-				.clone_with_options(ResolveOptions {
-					description_files: vec![],
-					extensions: vec![".json".into()],
-					main_files: vec!["tsconfig.json".into()],
+			_ => {
+				self.clone_with_options(ResolveOptions {
+					description_files:vec![],
+					extensions:vec![".json".into()],
+					main_files:vec!["tsconfig.json".into()],
 					..ResolveOptions::default()
 				})
 				.load_package_self_or_node_modules(
@@ -1378,21 +1417,26 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
 					&mut Ctx::default(),
 				)
 				.map(|p| p.to_path_buf())
-				.map_err(|err| match err {
-					ResolveError::NotFound(_) => {
-						ResolveError::TsconfigNotFound(PathBuf::from(specifier))
-					},
-					_ => err,
-				}),
+				.map_err(|err| {
+					match err {
+						ResolveError::NotFound(_) => {
+							ResolveError::TsconfigNotFound(PathBuf::from(
+								specifier,
+							))
+						},
+						_ => err,
+					}
+				})
+			},
 		}
 	}
 
 	/// PACKAGE_RESOLVE(packageSpecifier, parentURL)
 	fn package_resolve(
 		&self,
-		cached_path: &CachedPath,
-		specifier: &str,
-		ctx: &mut Ctx,
+		cached_path:&CachedPath,
+		specifier:&str,
+		ctx:&mut Ctx,
 	) -> ResolveResult {
 		let (package_name, subpath) = Self::parse_package_specifier(specifier);
 
@@ -1405,7 +1449,8 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
 			for cached_path in
 				std::iter::successors(Some(cached_path), |p| p.parent())
 			{
-				// 1. Let packageURL be the URL resolution of "node_modules/" concatenated with packageSpecifier, relative to parentURL.
+				// 1. Let packageURL be the URL resolution of "node_modules/"
+				//    concatenated with packageSpecifier, relative to parentURL.
 				let Some(cached_path) =
 					self.get_module_directory(cached_path, module_name, ctx)
 				else {
@@ -1418,14 +1463,18 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
 				// 3. If the folder at packageURL does not exist, then
 				//   1. Continue the next loop iteration.
 				if cached_path.is_dir(&self.cache.fs, ctx) {
-					// 4. Let pjson be the result of READ_PACKAGE_JSON(packageURL).
+					// 4. Let pjson be the result of
+					//    READ_PACKAGE_JSON(packageURL).
 					if let Some(package_json) = cached_path.package_json(
 						&self.cache.fs,
 						&self.options,
 						ctx,
 					)? {
-						// 5. If pjson is not null and pjson.exports is not null or undefined, then
-						// 1. Return the result of PACKAGE_EXPORTS_RESOLVE(packageURL, packageSubpath, pjson.exports, defaultConditions).
+						// 5. If pjson is not null and pjson.exports is not null
+						//    or undefined, then
+						// 1. Return the result of
+						//    PACKAGE_EXPORTS_RESOLVE(packageURL,
+						//    packageSubpath, pjson.exports, defaultConditions).
 						for exports in package_json
 							.exports_fields(&self.options.exports_fields)
 						{
@@ -1444,7 +1493,8 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
 							for main_field in package_json
 								.main_fields(&self.options.main_fields)
 							{
-								// 1. Return the URL resolution of main in packageURL.
+								// 1. Return the URL resolution of main in
+								//    packageURL.
 								let path = cached_path
 									.path()
 									.normalize_with(main_field);
@@ -1468,13 +1518,15 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
 	/// PACKAGE_EXPORTS_RESOLVE(packageURL, subpath, exports, conditions)
 	fn package_exports_resolve(
 		&self,
-		package_url: &Path,
-		subpath: &str,
-		exports: &JSONValue,
-		ctx: &mut Ctx,
+		package_url:&Path,
+		subpath:&str,
+		exports:&JSONValue,
+		ctx:&mut Ctx,
 	) -> ResolveResult {
 		let conditions = &self.options.condition_names;
-		// 1. If exports is an Object with both a key starting with "." and a key not starting with ".", throw an Invalid Package Configuration error.
+		// 1. If exports is an Object with both a key starting with "." and a
+		//    key not starting with ".", throw an Invalid Package Configuration
+		//    error.
 		if let JSONValue::Object(map) = exports {
 			let mut has_dot = false;
 			let mut without_dot = false;
@@ -1492,9 +1544,10 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
 		// 2. If subpath is equal to ".", then
 		// Note: subpath is not prepended with a dot when passed in.
 		if subpath == "." {
-			// enhanced-resolve appends query and fragment when resolving exports field
-			// https://github.com/webpack/enhanced-resolve/blob/a998c7d218b7a9ec2461fc4fddd1ad5dd7687485/lib/ExportsFieldPlugin.js#L57-L62
-			// This is only need when querying the main export, otherwise ctx is passed through.
+			// enhanced-resolve appends query and fragment when resolving
+			// exports field https://github.com/webpack/enhanced-resolve/blob/a998c7d218b7a9ec2461fc4fddd1ad5dd7687485/lib/ExportsFieldPlugin.js#L57-L62
+			// This is only need when querying the main export, otherwise ctx is
+			// passed through.
 			if ctx.query.is_some() || ctx.fragment.is_some() {
 				let query = ctx.query.clone().unwrap_or_default();
 				let fragment = ctx.fragment.clone().unwrap_or_default();
@@ -1508,12 +1561,14 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
 			}
 			// 1. Let mainExport be undefined.
 			let main_export = match exports {
-				// 2. If exports is a String or Array, or an Object containing no keys starting with ".", then
+				// 2. If exports is a String or Array, or an Object containing
+				//    no keys starting with ".", then
 				JSONValue::String(_) | JSONValue::Array(_) => {
 					// 1. Set mainExport to exports.
 					Some(exports)
 				},
-				// 3. Otherwise if exports is an Object containing a "." property, then
+				// 3. Otherwise if exports is an Object containing a "."
+				//    property, then
 				JSONValue::Object(map) => {
 					// 1. Set mainExport to exports["."].
 					map.get(".").map_or_else(
@@ -1533,13 +1588,15 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
 			};
 			// 4. If mainExport is not undefined, then
 			if let Some(main_export) = main_export {
-				// 1. Let resolved be the result of PACKAGE_TARGET_RESOLVE( packageURL, mainExport, null, false, conditions).
+				// 1. Let resolved be the result of PACKAGE_TARGET_RESOLVE(
+				//    packageURL, mainExport, null, false, conditions).
 				let resolved = self.package_target_resolve(
 					package_url,
 					".",
 					main_export,
 					None,
-					/* is_imports */ false,
+					// is_imports
+					false,
 					conditions,
 					ctx,
 				)?;
@@ -1549,17 +1606,21 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
 				}
 			}
 		}
-		// 3. Otherwise, if exports is an Object and all keys of exports start with ".", then
+		// 3. Otherwise, if exports is an Object and all keys of exports start
+		//    with ".", then
 		if let JSONValue::Object(exports) = exports {
 			// 1. Let matchKey be the string "./" concatenated with subpath.
-			// Note: `package_imports_exports_resolve` does not require the leading dot.
+			// Note: `package_imports_exports_resolve` does not require the
+			// leading dot.
 			let match_key = &subpath;
-			// 2. Let resolved be the result of PACKAGE_IMPORTS_EXPORTS_RESOLVE( matchKey, exports, packageURL, false, conditions).
+			// 2. Let resolved be the result of PACKAGE_IMPORTS_EXPORTS_RESOLVE(
+			//    matchKey, exports, packageURL, false, conditions).
 			if let Some(path) = self.package_imports_exports_resolve(
 				match_key,
 				exports,
 				package_url,
-				/* is_imports */ false,
+				// is_imports
+				false,
 				conditions,
 				ctx,
 			)? {
@@ -1577,9 +1638,9 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
 	/// PACKAGE_IMPORTS_RESOLVE(specifier, parentURL, conditions)
 	fn package_imports_resolve(
 		&self,
-		specifier: &str,
-		package_json: &PackageJson,
-		ctx: &mut Ctx,
+		specifier:&str,
+		package_json:&PackageJson,
+		ctx:&mut Ctx,
 	) -> Result<Option<CachedPath>, ResolveError> {
 		// 1. Assert: specifier begins with "#".
 		debug_assert!(specifier.starts_with('#'), "{specifier}");
@@ -1591,7 +1652,8 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
 		// 1. Let pjson be the result of READ_PACKAGE_JSON(packageURL).
 		// 2. If pjson.imports is a non-null Object, then
 
-		// 1. Let resolved be the result of PACKAGE_IMPORTS_EXPORTS_RESOLVE( specifier, pjson.imports, packageURL, true, conditions).
+		// 1. Let resolved be the result of PACKAGE_IMPORTS_EXPORTS_RESOLVE(
+		//    specifier, pjson.imports, packageURL, true, conditions).
 		let mut has_imports = false;
 		for imports in package_json.imports_fields(&self.options.imports_fields)
 		{
@@ -1609,7 +1671,8 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
 				specifier,
 				imports,
 				package_json.directory(),
-				/* is_imports */ true,
+				// is_imports
+				true,
 				&self.options.condition_names,
 				ctx,
 			)? {
@@ -1629,18 +1692,20 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
 		}
 	}
 
-	/// PACKAGE_IMPORTS_EXPORTS_RESOLVE(matchKey, matchObj, packageURL, isImports, conditions)
+	/// PACKAGE_IMPORTS_EXPORTS_RESOLVE(matchKey, matchObj, packageURL,
+	/// isImports, conditions)
 	fn package_imports_exports_resolve(
 		&self,
-		match_key: &str,
-		match_obj: &JSONMap,
-		package_url: &Path,
-		is_imports: bool,
-		conditions: &[String],
-		ctx: &mut Ctx,
+		match_key:&str,
+		match_obj:&JSONMap,
+		package_url:&Path,
+		is_imports:bool,
+		conditions:&[String],
+		ctx:&mut Ctx,
 	) -> ResolveResult {
 		// enhanced-resolve behaves differently, it throws
-		// Error: CachedPath to directories is not possible with the exports field (specifier was ./dist/)
+		// Error: CachedPath to directories is not possible with the exports
+		// field (specifier was ./dist/)
 		if match_key.ends_with('/') {
 			return Ok(None);
 		}
@@ -1648,7 +1713,8 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
 		if !match_key.contains('*') {
 			// 1. Let target be the value of matchObj[matchKey].
 			if let Some(target) = match_obj.get(match_key) {
-				// 2. Return the result of PACKAGE_TARGET_RESOLVE(packageURL, target, null, isImports, conditions).
+				// 2. Return the result of PACKAGE_TARGET_RESOLVE(packageURL,
+				//    target, null, isImports, conditions).
 				return self.package_target_resolve(
 					package_url,
 					match_key,
@@ -1664,16 +1730,20 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
 		let mut best_target = None;
 		let mut best_match = "";
 		let mut best_key = "";
-		// 2. Let expansionKeys be the list of keys of matchObj containing only a single "*", sorted by the sorting function PATTERN_KEY_COMPARE which orders in descending order of specificity.
+		// 2. Let expansionKeys be the list of keys of matchObj containing only
+		//    a single "*", sorted by the sorting function PATTERN_KEY_COMPARE
+		//    which orders in descending order of specificity.
 		// 3. For each key expansionKey in expansionKeys, do
 		for (expansion_key, target) in match_obj {
 			if expansion_key.starts_with("./") || expansion_key.starts_with('#')
 			{
-				// 1. Let patternBase be the substring of expansionKey up to but excluding the first "*" character.
+				// 1. Let patternBase be the substring of expansionKey up to but
+				//    excluding the first "*" character.
 				if let Some((pattern_base, pattern_trailer)) =
 					expansion_key.split_once('*')
 				{
-					// 2. If matchKey starts with but is not equal to patternBase, then
+					// 2. If matchKey starts with but is not equal to
+					//    patternBase, then
 					if match_key.starts_with(pattern_base)
                         // 1. Let patternTrailer be the substring of expansionKey from the index after the first "*" character.
                         && !pattern_trailer.contains('*')
@@ -1685,7 +1755,10 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
 					{
 						// 1. Let target be the value of matchObj[expansionKey].
 						best_target = Some(target);
-						// 2. Let patternMatch be the substring of matchKey starting at the index of the length of patternBase up to the length of matchKey minus the length of patternTrailer.
+						// 2. Let patternMatch be the substring of matchKey
+						//    starting at the index of the length of patternBase
+						//    up to the length of matchKey minus the length of
+						//    patternTrailer.
 						best_match = &match_key[pattern_base.len()
 							..match_key.len() - pattern_trailer.len()];
 						best_key = expansion_key;
@@ -1695,7 +1768,9 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
 					&& Self::pattern_key_compare(best_key, expansion_key)
 						.is_gt()
 				{
-					// TODO: [DEP0148] DeprecationWarning: Use of deprecated folder mapping "./dist/" in the "exports" field module resolution of the package at xxx/package.json.
+					// TODO: [DEP0148] DeprecationWarning: Use of deprecated
+					// folder mapping "./dist/" in the "exports" field module
+					// resolution of the package at xxx/package.json.
 					best_target = Some(target);
 					best_match = &match_key[expansion_key.len()..];
 					best_key = expansion_key;
@@ -1703,7 +1778,8 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
 			}
 		}
 		if let Some(best_target) = best_target {
-			// 3. Return the result of PACKAGE_TARGET_RESOLVE(packageURL, target, patternMatch, isImports, conditions).
+			// 3. Return the result of PACKAGE_TARGET_RESOLVE(packageURL,
+			//    target, patternMatch, isImports, conditions).
 			return self.package_target_resolve(
 				package_url,
 				best_key,
@@ -1718,28 +1794,31 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
 		Ok(None)
 	}
 
-	/// PACKAGE_TARGET_RESOLVE(packageURL, target, patternMatch, isImports, conditions)
+	/// PACKAGE_TARGET_RESOLVE(packageURL, target, patternMatch, isImports,
+	/// conditions)
 	#[allow(clippy::too_many_arguments)]
 	fn package_target_resolve(
 		&self,
-		package_url: &Path,
-		target_key: &str,
-		target: &JSONValue,
-		pattern_match: Option<&str>,
-		is_imports: bool,
-		conditions: &[String],
-		ctx: &mut Ctx,
+		package_url:&Path,
+		target_key:&str,
+		target:&JSONValue,
+		pattern_match:Option<&str>,
+		is_imports:bool,
+		conditions:&[String],
+		ctx:&mut Ctx,
 	) -> ResolveResult {
 		fn normalize_string_target<'a>(
-			target_key: &'a str,
-			target: &'a str,
-			pattern_match: Option<&'a str>,
-			package_url: &Path,
+			target_key:&'a str,
+			target:&'a str,
+			pattern_match:Option<&'a str>,
+			package_url:&Path,
 		) -> Result<Cow<'a, str>, ResolveError> {
 			let target = if let Some(pattern_match) = pattern_match {
 				if !target_key.contains('*') && !target.contains('*') {
 					// enhanced-resolve behaviour
-					// TODO: [DEP0148] DeprecationWarning: Use of deprecated folder mapping "./dist/" in the "exports" field module resolution of the package at xxx/package.json.
+					// TODO: [DEP0148] DeprecationWarning: Use of deprecated
+					// folder mapping "./dist/" in the "exports" field module
+					// resolution of the package at xxx/package.json.
 					if target_key.ends_with('/') && target.ends_with('/') {
 						Cow::Owned(format!("{target}{pattern_match}"))
 					} else {
@@ -1763,7 +1842,8 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
 			JSONValue::String(target) => {
 				// 1. If target does not start with "./", then
 				if !target.starts_with("./") {
-					// 1. If isImports is false, or if target starts with "../" or "/", or if target is a valid URL, then
+					// 1. If isImports is false, or if target starts with "../"
+					//    or "/", or if target is a valid URL, then
 					if !is_imports
 						|| target.starts_with("../")
 						|| target.starts_with('/')
@@ -1776,7 +1856,8 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
 						));
 					}
 					// 2. If patternMatch is a String, then
-					//   1. Return PACKAGE_RESOLVE(target with every instance of "*" replaced by patternMatch, packageURL + "/").
+					//   1. Return PACKAGE_RESOLVE(target with every instance of
+					//      "*" replaced by patternMatch, packageURL + "/").
 					let target = normalize_string_target(
 						target_key,
 						target,
@@ -1788,8 +1869,12 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
 					return self.package_resolve(&package_url, &target, ctx);
 				}
 
-				// 2. If target split on "/" or "\" contains any "", ".", "..", or "node_modules" segments after the first "." segment, case insensitive and including percent encoded variants, throw an Invalid Package Target error.
-				// 3. Let resolvedTarget be the URL resolution of the concatenation of packageURL and target.
+				// 2. If target split on "/" or "\" contains any "", ".", "..",
+				//    or "node_modules" segments after the first "." segment,
+				//    case insensitive and including percent encoded variants,
+				//    throw an Invalid Package Target error.
+				// 3. Let resolvedTarget be the URL resolution of the
+				//    concatenation of packageURL and target.
 				// 4. Assert: resolvedTarget is contained in packageURL.
 				// 5. If patternMatch is null, then
 				let target = normalize_string_target(
@@ -1807,20 +1892,31 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
 				}
 				let resolved_target =
 					package_url.normalize_with(target.as_ref());
-				// 6. If patternMatch split on "/" or "\" contains any "", ".", "..", or "node_modules" segments, case insensitive and including percent encoded variants, throw an Invalid Module Specifier error.
-				// 7. Return the URL resolution of resolvedTarget with every instance of "*" replaced with patternMatch.
+				// 6. If patternMatch split on "/" or "\" contains any "", ".",
+				//    "..", or "node_modules" segments, case insensitive and
+				//    including percent encoded variants, throw an Invalid
+				//    Module Specifier error.
+				// 7. Return the URL resolution of resolvedTarget with every
+				//    instance of "*" replaced with patternMatch.
 				let value = self.cache.value(&resolved_target);
 				return Ok(Some(value));
 			},
 			// 2. Otherwise, if target is a non-null Object, then
 			JSONValue::Object(target) => {
-				// 1. If exports contains any index property keys, as defined in ECMA-262 6.1.7 Array Index, throw an Invalid Package Configuration error.
-				// 2. For each property p of target, in object insertion order as,
+				// 1. If exports contains any index property keys, as defined in
+				//    ECMA-262 6.1.7 Array Index, throw an Invalid Package
+				//    Configuration error.
+				// 2. For each property p of target, in object insertion order
+				//    as,
 				for (key, target_value) in target {
-					// 1. If p equals "default" or conditions contains an entry for p, then
+					// 1. If p equals "default" or conditions contains an entry
+					//    for p, then
 					if key == "default" || conditions.contains(key) {
-						// 1. Let targetValue be the value of the p property in target.
-						// 2. Let resolved be the result of PACKAGE_TARGET_RESOLVE( packageURL, targetValue, patternMatch, isImports, conditions).
+						// 1. Let targetValue be the value of the p property in
+						//    target.
+						// 2. Let resolved be the result of
+						//    PACKAGE_TARGET_RESOLVE( packageURL, targetValue,
+						//    patternMatch, isImports, conditions).
 						let resolved = self.package_target_resolve(
 							package_url,
 							target_key,
@@ -1830,7 +1926,8 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
 							conditions,
 							ctx,
 						);
-						// 3. If resolved is equal to undefined, continue the loop.
+						// 3. If resolved is equal to undefined, continue the
+						//    loop.
 						if let Some(path) = resolved? {
 							// 4. Return resolved.
 							return Ok(Some(path));
@@ -1844,7 +1941,8 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
 			JSONValue::Array(targets) => {
 				// 1. If _target.length is zero, return null.
 				if targets.is_empty() {
-					// Note: return PackagePathNotExported has the same effect as return because there are no matches.
+					// Note: return PackagePathNotExported has the same effect
+					// as return because there are no matches.
 					return Err(ResolveError::PackagePathNotExported(
 						pattern_match.unwrap_or(".").to_string(),
 						package_url.join("package.json"),
@@ -1852,7 +1950,10 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
 				}
 				// 2. For each item targetValue in target, do
 				for (i, target_value) in targets.iter().enumerate() {
-					// 1. Let resolved be the result of PACKAGE_TARGET_RESOLVE( packageURL, targetValue, patternMatch, isImports, conditions), continuing the loop on any Invalid Package Target error.
+					// 1. Let resolved be the result of PACKAGE_TARGET_RESOLVE(
+					//    packageURL, targetValue, patternMatch, isImports,
+					//    conditions), continuing the loop on any Invalid
+					//    Package Target error.
 					let resolved = self.package_target_resolve(
 						package_url,
 						target_key,
@@ -1873,7 +1974,8 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
 						return Ok(Some(path));
 					}
 				}
-				// 3. Return or throw the last fallback resolution null return or error.
+				// 3. Return or throw the last fallback resolution null return
+				//    or error.
 				// Note: see `resolved.is_err() && i == targets.len()`
 			},
 			_ => {},
@@ -1885,7 +1987,7 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
 
 	// Returns (module, subpath)
 	// https://github.com/nodejs/node/blob/8f0f17e1e3b6c4e58ce748e06343c5304062c491/lib/internal/modules/esm/resolve.js#L688
-	fn parse_package_specifier(specifier: &str) -> (&str, &str) {
+	fn parse_package_specifier(specifier:&str) -> (&str, &str) {
 		let mut separator_index =
 			specifier.as_bytes().iter().position(|b| *b == b'/');
 		// let mut valid_package_name = true;
@@ -1906,10 +2008,10 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
 			.map_or(specifier, |separator_index| &specifier[..separator_index]);
 
 		// TODO: https://github.com/nodejs/node/blob/8f0f17e1e3b6c4e58ce748e06343c5304062c491/lib/internal/modules/esm/resolve.js#L705C1-L714C1
-		// Package name cannot have leading . and cannot have percent-encoding or
-		// \\ separators.
-		// if (RegExpPrototypeExec(invalidPackageNameRegEx, packageName) !== null)
-		// validPackageName = false;
+		// Package name cannot have leading . and cannot have percent-encoding
+		// or \\ separators.
+		// if (RegExpPrototypeExec(invalidPackageNameRegEx, packageName) !==
+		// null) validPackageName = false;
 
 		// if (!validPackageName) {
 		// throw new ERR_INVALID_MODULE_SPECIFIER(
@@ -1921,7 +2023,7 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
 	}
 
 	/// PATTERN_KEY_COMPARE(keyA, keyB)
-	fn pattern_key_compare(key_a: &str, key_b: &str) -> Ordering {
+	fn pattern_key_compare(key_a:&str, key_b:&str) -> Ordering {
 		if key_a.is_empty() {
 			return Ordering::Greater;
 		}
@@ -1935,10 +2037,12 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
 			key_b.ends_with('/') || key_b.match_indices('*').count() == 1,
 			"{key_b}"
 		);
-		// 3. Let baseLengthA be the index of "*" in keyA plus one, if keyA contains "*", or the length of keyA otherwise.
+		// 3. Let baseLengthA be the index of "*" in keyA plus one, if keyA
+		//    contains "*", or the length of keyA otherwise.
 		let a_pos = key_a.chars().position(|c| c == '*');
 		let base_length_a = a_pos.map_or(key_a.len(), |p| p + 1);
-		// 4. Let baseLengthB be the index of "*" in keyB plus one, if keyB contains "*", or the length of keyB otherwise.
+		// 4. Let baseLengthB be the index of "*" in keyB plus one, if keyB
+		//    contains "*", or the length of keyB otherwise.
 		let b_pos = key_b.chars().position(|c| c == '*');
 		let base_length_b = b_pos.map_or(key_b.len(), |p| p + 1);
 		// 5. If baseLengthA is greater than baseLengthB, return -1.
@@ -1957,11 +2061,13 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
 		if !key_b.contains('*') {
 			return Ordering::Less;
 		}
-		// 9. If the length of keyA is greater than the length of keyB, return -1.
+		// 9. If the length of keyA is greater than the length of keyB, return
+		//    -1.
 		if key_a.len() > key_b.len() {
 			return Ordering::Less;
 		}
-		// 10. If the length of keyB is greater than the length of keyA, return 1.
+		// 10. If the length of keyB is greater than the length of keyA, return
+		//     1.
 		if key_b.len() > key_a.len() {
 			return Ordering::Greater;
 		}
@@ -1970,8 +2076,8 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
 	}
 
 	fn strip_package_name<'a>(
-		specifier: &'a str,
-		package_name: &'a str,
+		specifier:&'a str,
+		package_name:&'a str,
 	) -> Option<&'a str> {
 		specifier
 			.strip_prefix(package_name)

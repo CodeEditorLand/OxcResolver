@@ -1,9 +1,10 @@
-use cfg_if::cfg_if;
 use std::{
-	fs, io,
+	fs,
+	io,
 	path::{Path, PathBuf},
 };
 
+use cfg_if::cfg_if;
 #[cfg(feature = "yarn_pnp")]
 use pnp::fs::{LruZipCache, VPath, VPathInfo, ZipCache};
 
@@ -17,9 +18,9 @@ pub trait FileSystem: Send + Sync {
 	/// ## Warning
 	/// Use `&Path` instead of a generic `P: AsRef<Path>` here,
 	/// because object safety requirements, it is especially useful, when
-	/// you want to store multiple `dyn FileSystem` in a `Vec` or use a `ResolverGeneric<Fs>` in
-	/// napi env.
-	fn read_to_string(&self, path: &Path) -> io::Result<String>;
+	/// you want to store multiple `dyn FileSystem` in a `Vec` or use a
+	/// `ResolverGeneric<Fs>` in napi env.
+	fn read_to_string(&self, path:&Path) -> io::Result<String>;
 
 	/// See [std::fs::metadata]
 	///
@@ -28,9 +29,9 @@ pub trait FileSystem: Send + Sync {
 	/// ## Warning
 	/// Use `&Path` instead of a generic `P: AsRef<Path>` here,
 	/// because object safety requirements, it is especially useful, when
-	/// you want to store multiple `dyn FileSystem` in a `Vec` or use a `ResolverGeneric<Fs>` in
-	/// napi env.
-	fn metadata(&self, path: &Path) -> io::Result<FileMetadata>;
+	/// you want to store multiple `dyn FileSystem` in a `Vec` or use a
+	/// `ResolverGeneric<Fs>` in napi env.
+	fn metadata(&self, path:&Path) -> io::Result<FileMetadata>;
 
 	/// See [std::fs::symlink_metadata]
 	///
@@ -40,9 +41,9 @@ pub trait FileSystem: Send + Sync {
 	/// ## Warning
 	/// Use `&Path` instead of a generic `P: AsRef<Path>` here,
 	/// because object safety requirements, it is especially useful, when
-	/// you want to store multiple `dyn FileSystem` in a `Vec` or use a `ResolverGeneric<Fs>` in
-	/// napi env.
-	fn symlink_metadata(&self, path: &Path) -> io::Result<FileMetadata>;
+	/// you want to store multiple `dyn FileSystem` in a `Vec` or use a
+	/// `ResolverGeneric<Fs>` in napi env.
+	fn symlink_metadata(&self, path:&Path) -> io::Result<FileMetadata>;
 
 	/// See [std::fs::canonicalize]
 	///
@@ -52,38 +53,34 @@ pub trait FileSystem: Send + Sync {
 	/// ## Warning
 	/// Use `&Path` instead of a generic `P: AsRef<Path>` here,
 	/// because object safety requirements, it is especially useful, when
-	/// you want to store multiple `dyn FileSystem` in a `Vec` or use a `ResolverGeneric<Fs>` in
-	/// napi env.
-	fn canonicalize(&self, path: &Path) -> io::Result<PathBuf>;
+	/// you want to store multiple `dyn FileSystem` in a `Vec` or use a
+	/// `ResolverGeneric<Fs>` in napi env.
+	fn canonicalize(&self, path:&Path) -> io::Result<PathBuf>;
 }
 
 /// Metadata information about a file
 #[derive(Debug, Clone, Copy)]
 pub struct FileMetadata {
-	pub(crate) is_file: bool,
-	pub(crate) is_dir: bool,
-	pub(crate) is_symlink: bool,
+	pub(crate) is_file:bool,
+	pub(crate) is_dir:bool,
+	pub(crate) is_symlink:bool,
 }
 
 impl FileMetadata {
-	pub fn new(is_file: bool, is_dir: bool, is_symlink: bool) -> Self {
+	pub fn new(is_file:bool, is_dir:bool, is_symlink:bool) -> Self {
 		Self { is_file, is_dir, is_symlink }
 	}
 }
 
 #[cfg(feature = "yarn_pnp")]
 impl From<pnp::fs::FileType> for FileMetadata {
-	fn from(value: pnp::fs::FileType) -> Self {
-		Self::new(
-			value == pnp::fs::FileType::File,
-			value == pnp::fs::FileType::Directory,
-			false,
-		)
+	fn from(value:pnp::fs::FileType) -> Self {
+		Self::new(value == pnp::fs::FileType::File, value == pnp::fs::FileType::Directory, false)
 	}
 }
 
 impl From<fs::Metadata> for FileMetadata {
-	fn from(metadata: fs::Metadata) -> Self {
+	fn from(metadata:fs::Metadata) -> Self {
 		Self::new(metadata.is_file(), metadata.is_dir(), metadata.is_symlink())
 	}
 }
@@ -91,7 +88,7 @@ impl From<fs::Metadata> for FileMetadata {
 /// Operating System
 #[cfg(feature = "yarn_pnp")]
 pub struct FileSystemOs {
-	pnp_lru: LruZipCache<Vec<u8>>,
+	pnp_lru:LruZipCache<Vec<u8>>,
 }
 
 #[cfg(not(feature = "yarn_pnp"))]
@@ -109,11 +106,13 @@ impl Default for FileSystemOs {
 	}
 }
 
-fn read_to_string(path: &Path) -> io::Result<String> {
-	// `simdutf8` is faster than `std::str::from_utf8` which `fs::read_to_string` uses internally
+fn read_to_string(path:&Path) -> io::Result<String> {
+	// `simdutf8` is faster than `std::str::from_utf8` which
+	// `fs::read_to_string` uses internally
 	let bytes = std::fs::read(path)?;
 	if simdutf8::basic::from_utf8(&bytes).is_err() {
-		// Same error as `fs::read_to_string` produces (`io::Error::INVALID_UTF8`)
+		// Same error as `fs::read_to_string` produces
+		// (`io::Error::INVALID_UTF8`)
 		return Err(io::Error::new(
 			io::ErrorKind::InvalidData,
 			"stream did not contain valid UTF-8",
@@ -124,7 +123,7 @@ fn read_to_string(path: &Path) -> io::Result<String> {
 }
 
 impl FileSystem for FileSystemOs {
-	fn read_to_string(&self, path: &Path) -> io::Result<String> {
+	fn read_to_string(&self, path:&Path) -> io::Result<String> {
 		cfg_if! {
 			if #[cfg(feature = "yarn_pnp")] {
 				match VPath::from(path)? {
@@ -140,7 +139,7 @@ impl FileSystem for FileSystemOs {
 		}
 	}
 
-	fn metadata(&self, path: &Path) -> io::Result<FileMetadata> {
+	fn metadata(&self, path:&Path) -> io::Result<FileMetadata> {
 		cfg_if! {
 			if #[cfg(feature = "yarn_pnp")] {
 				match VPath::from(path)? {
@@ -159,11 +158,11 @@ impl FileSystem for FileSystemOs {
 		}
 	}
 
-	fn symlink_metadata(&self, path: &Path) -> io::Result<FileMetadata> {
+	fn symlink_metadata(&self, path:&Path) -> io::Result<FileMetadata> {
 		fs::symlink_metadata(path).map(FileMetadata::from)
 	}
 
-	fn canonicalize(&self, path: &Path) -> io::Result<PathBuf> {
+	fn canonicalize(&self, path:&Path) -> io::Result<PathBuf> {
 		cfg_if! {
 			if #[cfg(feature = "yarn_pnp")] {
 				match VPath::from(path)? {
@@ -215,7 +214,7 @@ impl FileSystem for FileSystemOs {
 
 #[test]
 fn metadata() {
-	let meta = FileMetadata { is_file: true, is_dir: true, is_symlink: true };
+	let meta = FileMetadata { is_file:true, is_dir:true, is_symlink:true };
 	assert_eq!(
 		format!("{meta:?}"),
 		"FileMetadata { is_file: true, is_dir: true, is_symlink: true }"

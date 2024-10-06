@@ -5,7 +5,7 @@
 //! * [normalize_path](https://docs.rs/normalize-path)
 use std::path::{Component, Path, PathBuf};
 
-pub const SLASH_START: &[char; 2] = &['/', '\\'];
+pub const SLASH_START:&[char; 2] = &['/', '\\'];
 
 /// Extension trait to add path normalization to std's [`Path`].
 pub trait PathUtil {
@@ -16,15 +16,18 @@ pub trait PathUtil {
 	/// However, this does not resolve links.
 	fn normalize(&self) -> PathBuf;
 
-	/// Normalize with subpath assuming this path is normalized without performing I/O.
+	/// Normalize with subpath assuming this path is normalized without
+	/// performing I/O.
 	///
 	/// All redundant separator and up-level references are collapsed.
 	///
 	/// However, this does not resolve links.
-	fn normalize_with<P: AsRef<Path>>(&self, subpath: P) -> PathBuf;
+	fn normalize_with<P:AsRef<Path>>(&self, subpath:P) -> PathBuf;
 
 	/// Defined in ESM PACKAGE_TARGET_RESOLVE
-	/// If target split on "/" or "\" contains any "", ".", "..", or "node_modules" segments after the first "." segment, case insensitive and including percent encoded variants
+	/// If target split on "/" or "\" contains any "", ".", "..", or
+	/// "node_modules" segments after the first "." segment, case insensitive
+	/// and including percent encoded variants
 	fn is_invalid_exports_target(&self) -> bool;
 }
 
@@ -32,8 +35,7 @@ impl PathUtil for Path {
 	// https://github.com/parcel-bundler/parcel/blob/e0b99c2a42e9109a9ecbd6f537844a1b33e7faf5/packages/utils/node-resolver-rs/src/path.rs#L7
 	fn normalize(&self) -> PathBuf {
 		let mut components = self.components().peekable();
-		let mut ret = if let Some(c @ Component::Prefix(..)) = components.peek()
-		{
+		let mut ret = if let Some(c @ Component::Prefix(..)) = components.peek() {
 			let buf = PathBuf::from(c.as_os_str());
 			components.next();
 			buf
@@ -61,7 +63,7 @@ impl PathUtil for Path {
 	}
 
 	// https://github.com/parcel-bundler/parcel/blob/e0b99c2a42e9109a9ecbd6f537844a1b33e7faf5/packages/utils/node-resolver-rs/src/path.rs#L37
-	fn normalize_with<B: AsRef<Self>>(&self, subpath: B) -> PathBuf {
+	fn normalize_with<B:AsRef<Self>>(&self, subpath:B) -> PathBuf {
 		let subpath = subpath.as_ref();
 
 		let mut components = subpath.components();
@@ -94,11 +96,13 @@ impl PathUtil for Path {
 	}
 
 	fn is_invalid_exports_target(&self) -> bool {
-		self.components().enumerate().any(|(index, c)| match c {
-			Component::ParentDir => true,
-			Component::CurDir => index > 0,
-			Component::Normal(c) => c.eq_ignore_ascii_case("node_modules"),
-			_ => false,
+		self.components().enumerate().any(|(index, c)| {
+			match c {
+				Component::ParentDir => true,
+				Component::CurDir => index > 0,
+				Component::Normal(c) => c.eq_ignore_ascii_case("node_modules"),
+				_ => false,
+			}
 		})
 	}
 }
@@ -131,8 +135,5 @@ fn normalize() {
 	assert_eq!(Path::new("/foo/.././foo/").normalize(), Path::new("/foo"));
 	assert_eq!(Path::new("C://").normalize(), Path::new("C://"));
 	assert_eq!(Path::new("C:").normalize(), Path::new("C:"));
-	assert_eq!(
-		Path::new(r"\\server\share").normalize(),
-		Path::new(r"\\server\share")
-	);
+	assert_eq!(Path::new(r"\\server\share").normalize(), Path::new(r"\\server\share"));
 }

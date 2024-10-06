@@ -3,7 +3,7 @@
 use libfuzzer_sys::fuzz_target;
 use oxc_resolver::Resolver;
 
-fuzz_target!(|data: &[u8]| {
+fuzz_target!(|data:&[u8]| {
 	if let Ok(s) = std::str::from_utf8(data) {
 		if s.chars().all(|s| !s.is_control()) {
 			let resolver = Resolver::default();

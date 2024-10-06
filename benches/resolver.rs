@@ -1,5 +1,6 @@
 use std::{
-	env, fs,
+	env,
+	fs,
 	io::{self, Write},
 	path::{Path, PathBuf},
 };
@@ -57,10 +58,7 @@ fn data() -> Vec<(PathBuf, &'static str)> {
 	]
 }
 
-fn symlink<P: AsRef<Path>, Q: AsRef<Path>>(
-	original: P,
-	link: Q,
-) -> io::Result<()> {
+fn symlink<P:AsRef<Path>, Q:AsRef<Path>>(original:P, link:Q) -> io::Result<()> {
 	#[cfg(target_family = "unix")]
 	{
 		std::os::unix::fs::symlink(original, link)
@@ -82,10 +80,7 @@ fn create_symlinks() -> io::Result<PathBuf> {
 		index.write_all(b"console.log('Hello, World!')")?;
 		// create 10000 symlink files pointing to the index.js
 		for i in 0..10000 {
-			symlink(
-				temp_path.join("index.js"),
-				temp_path.join(format!("file{i}.js")),
-			)?;
+			symlink(temp_path.join("index.js"), temp_path.join(format!("file{i}.js")))?;
 		}
 		Ok(())
 	};
@@ -102,16 +97,16 @@ fn oxc_resolver() -> oxc_resolver::Resolver {
 	use oxc_resolver::{AliasValue, ResolveOptions, Resolver};
 	let alias_value = AliasValue::from("./");
 	Resolver::new(ResolveOptions {
-		extensions: vec![".ts".into(), ".js".into()],
-		condition_names: vec!["webpack".into(), "require".into()],
-		alias_fields: vec![vec!["browser".into()]],
-		extension_alias: vec![
+		extensions:vec![".ts".into(), ".js".into()],
+		condition_names:vec!["webpack".into(), "require".into()],
+		alias_fields:vec![vec!["browser".into()]],
+		extension_alias:vec![
 			(".js".into(), vec![".ts".into(), ".js".into()]),
 			(".mjs".into(), vec![".mts".into()]),
 		],
 		// Real projects LOVE setting these many aliases.
 		// I saw them with my own eyes.
-		alias: vec![
+		alias:vec![
 			("/absolute/path".into(), vec![alias_value.clone()]),
 			("aaa".into(), vec![alias_value.clone()]),
 			("bbb".into(), vec![alias_value.clone()]),
@@ -140,58 +135,44 @@ fn oxc_resolver() -> oxc_resolver::Resolver {
 	})
 }
 
-fn bench_resolver(c: &mut Criterion) {
+fn bench_resolver(c:&mut Criterion) {
 	let data = data();
 
 	// check validity
 	for (path, request) in &data {
-		assert!(
-			oxc_resolver().resolve(path, request).is_ok(),
-			"{path:?} {request}"
-		);
+		assert!(oxc_resolver().resolve(path, request).is_ok(), "{path:?} {request}");
 	}
 
-	let symlink_test_dir =
-		create_symlinks().expect("Create symlink fixtures failed");
+	let symlink_test_dir = create_symlinks().expect("Create symlink fixtures failed");
 
 	let symlinks_range = 0u32..10000;
 
 	for i in symlinks_range.clone() {
 		assert!(
-			oxc_resolver()
-				.resolve(&symlink_test_dir, &format!("./file{i}"))
-				.is_ok(),
+			oxc_resolver().resolve(&symlink_test_dir, &format!("./file{i}")).is_ok(),
 			"file{i}.js"
 		);
 	}
 
 	let mut group = c.benchmark_group("resolver");
 
-	group.bench_with_input(
-		BenchmarkId::from_parameter("single-thread"),
-		&data,
-		|b, data| {
-			let oxc_resolver = oxc_resolver();
-			b.iter(|| {
-				for (path, request) in data {
-					_ = oxc_resolver.resolve(path, request);
-				}
-			});
-		},
-	);
+	group.bench_with_input(BenchmarkId::from_parameter("single-thread"), &data, |b, data| {
+		let oxc_resolver = oxc_resolver();
+		b.iter(|| {
+			for (path, request) in data {
+				_ = oxc_resolver.resolve(path, request);
+			}
+		});
+	});
 
-	group.bench_with_input(
-		BenchmarkId::from_parameter("multi-thread"),
-		&data,
-		|b, data| {
-			let oxc_resolver = oxc_resolver();
-			b.iter(|| {
-				data.par_iter().for_each(|(path, request)| {
-					_ = oxc_resolver.resolve(path, request);
-				});
+	group.bench_with_input(BenchmarkId::from_parameter("multi-thread"), &data, |b, data| {
+		let oxc_resolver = oxc_resolver();
+		b.iter(|| {
+			data.par_iter().for_each(|(path, request)| {
+				_ = oxc_resolver.resolve(path, request);
 			});
-		},
-	);
+		});
+	});
 
 	group.bench_with_input(
 		BenchmarkId::from_parameter("resolve from symlinks"),
@@ -201,9 +182,7 @@ fn bench_resolver(c: &mut Criterion) {
 			b.iter(|| {
 				for i in data.clone() {
 					assert!(
-						oxc_resolver
-							.resolve(&symlink_test_dir, &format!("./file{i}"))
-							.is_ok(),
+						oxc_resolver.resolve(&symlink_test_dir, &format!("./file{i}")).is_ok(),
 						"file{i}.js"
 					);
 				}

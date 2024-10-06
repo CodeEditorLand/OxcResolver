@@ -1,19 +1,18 @@
-use crate::error::SpecifierError;
 use std::borrow::Cow;
+
+use crate::error::SpecifierError;
 
 #[derive(Debug)]
 pub struct Specifier<'a> {
-	path: Cow<'a, str>,
-	pub query: Option<&'a str>,
-	pub fragment: Option<&'a str>,
+	path:Cow<'a, str>,
+	pub query:Option<&'a str>,
+	pub fragment:Option<&'a str>,
 }
 
 impl<'a> Specifier<'a> {
-	pub fn path(&'a self) -> &'a str {
-		self.path.as_ref()
-	}
+	pub fn path(&'a self) -> &'a str { self.path.as_ref() }
 
-	pub fn parse(specifier: &'a str) -> Result<Self, SpecifierError> {
+	pub fn parse(specifier:&'a str) -> Result<Self, SpecifierError> {
 		if specifier.is_empty() {
 			return Err(SpecifierError::Empty(specifier.to_string()));
 		}
@@ -21,8 +20,7 @@ impl<'a> Specifier<'a> {
 			b'/' | b'.' | b'#' => 1,
 			_ => 0,
 		};
-		let (path, query, fragment) =
-			Self::parse_query_framgment(specifier, offset);
+		let (path, query, fragment) = Self::parse_query_framgment(specifier, offset);
 		if path.is_empty() {
 			return Err(SpecifierError::Empty(specifier.to_string()));
 		}
@@ -30,11 +28,11 @@ impl<'a> Specifier<'a> {
 	}
 
 	fn parse_query_framgment(
-		specifier: &'a str,
-		skip: usize,
+		specifier:&'a str,
+		skip:usize,
 	) -> (Cow<'a, str>, Option<&str>, Option<&str>) {
-		let mut query_start: Option<usize> = None;
-		let mut fragment_start: Option<usize> = None;
+		let mut query_start:Option<usize> = None;
+		let mut fragment_start:Option<usize> = None;
 
 		let mut prev = specifier.chars().next().unwrap();
 		let mut escaped_indexes = vec![];
@@ -70,9 +68,7 @@ impl<'a> Specifier<'a> {
 			Cow::Owned(
 				path.chars()
 					.enumerate()
-					.filter_map(|(i, c)| {
-						(!escaped_indexes.contains(&i)).then_some(c)
-					})
+					.filter_map(|(i, c)| (!escaped_indexes.contains(&i)).then_some(c))
 					.collect::<String>(),
 			)
 		};
@@ -194,23 +190,14 @@ mod tests {
 			("path/#r#hash", "path/", "", "#r#hash"),
 			("path/#repo/#repo2#hash", "path/", "", "#repo/#repo2#hash"),
 			("path/#r/#r#hash", "path/", "", "#r/#r#hash"),
-			(
-				"path/#/not/a/hash?not-a-query",
-				"path/",
-				"",
-				"#/not/a/hash?not-a-query",
-			),
+			("path/#/not/a/hash?not-a-query", "path/", "", "#/not/a/hash?not-a-query"),
 		];
 
 		for (specifier_str, path, query, fragment) in data {
 			let specifier = Specifier::parse(specifier_str)?;
 			assert_eq!(specifier.path, path, "{specifier_str}");
 			assert_eq!(specifier.query.unwrap_or(""), query, "{specifier_str}");
-			assert_eq!(
-				specifier.fragment.unwrap_or(""),
-				fragment,
-				"{specifier_str}"
-			);
+			assert_eq!(specifier.fragment.unwrap_or(""), fragment, "{specifier_str}");
 		}
 
 		Ok(())
@@ -227,23 +214,14 @@ mod tests {
 			("path\\#r#hash", "path\\", "", "#r#hash"),
 			("path\\#repo\\#repo2#hash", "path\\", "", "#repo\\#repo2#hash"),
 			("path\\#r\\#r#hash", "path\\", "", "#r\\#r#hash"),
-			(
-				"path\\#/not/a/hash?not-a-query",
-				"path\\",
-				"",
-				"#/not/a/hash?not-a-query",
-			),
+			("path\\#/not/a/hash?not-a-query", "path\\", "", "#/not/a/hash?not-a-query"),
 		];
 
 		for (specifier_str, path, query, fragment) in data {
 			let specifier = Specifier::parse(specifier_str)?;
 			assert_eq!(specifier.path, path, "{specifier_str}");
 			assert_eq!(specifier.query.unwrap_or(""), query, "{specifier_str}");
-			assert_eq!(
-				specifier.fragment.unwrap_or(""),
-				fragment,
-				"{specifier_str}"
-			);
+			assert_eq!(specifier.fragment.unwrap_or(""), fragment, "{specifier_str}");
 		}
 
 		Ok(())

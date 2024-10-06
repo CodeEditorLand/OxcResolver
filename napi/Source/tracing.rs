@@ -1,13 +1,15 @@
 use std::sync::OnceLock;
 
-use tracing_subscriber::filter::Targets;
-use tracing_subscriber::prelude::__tracing_subscriber_SubscriberExt;
-use tracing_subscriber::util::SubscriberInitExt;
+use tracing_subscriber::{
+	filter::Targets,
+	prelude::__tracing_subscriber_SubscriberExt,
+	util::SubscriberInitExt,
+};
 
 /// To debug `oxc_resolver`:
 /// `OXC_LOG=DEBUG your program`
 pub fn init_tracing() {
-	static TRACING: OnceLock<()> = OnceLock::new();
+	static TRACING:OnceLock<()> = OnceLock::new();
 	TRACING.get_or_init(|| {
 		// Usage without the `regex` feature.
 		// <https://github.com/tokio-rs/tracing/issues/1436#issuecomment-918528013>

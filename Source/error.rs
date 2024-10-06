@@ -1,4 +1,5 @@
 use std::{io, path::PathBuf, sync::Arc};
+
 use thiserror::Error;
 
 /// All resolution errors
@@ -9,8 +10,8 @@ use thiserror::Error;
 pub enum ResolveError {
 	/// Ignored path
 	///
-	/// Derived from ignored path (false value) from browser field in package.json
-	/// ```json
+	/// Derived from ignored path (false value) from browser field in
+	/// package.json ```json
 	/// {
 	///     "browser": {
 	///         "./module": false
@@ -28,8 +29,10 @@ pub enum ResolveError {
 	/// Matched alias value  not found
 	#[error("Cannot find module '{0}' for matched aliased key '{1}'")]
 	MatchedAliasNotFound(
-		/* specifier */ String,
-		/* alias key */ String,
+		// specifier
+		String,
+		// alias key
+		String,
 	),
 
 	/// Tsconfig not found
@@ -46,18 +49,23 @@ pub enum ResolveError {
 	/// Node.js builtin modules
 	///
 	/// This is an error due to not being a Node.js runtime.
-	/// The `alias` option can be used to resolve a builtin module to a polyfill.
+	/// The `alias` option can be used to resolve a builtin module to a
+	/// polyfill.
 	#[error("Builtin module {0}")]
 	Builtin(String),
 
 	/// All of the aliased extension are not found
 	///
-	/// Displays `Cannot resolve 'index.mjs' with extension aliases 'index.mts' in ...`
+	/// Displays `Cannot resolve 'index.mjs' with extension aliases 'index.mts'
+	/// in ...`
 	#[error("Cannot resolve '{0}' for extension aliases '{1}' in '{2}'")]
 	ExtensionAlias(
-		/* File name */ String,
-		/* Tried file names */ String,
-		/* Path to dir */ PathBuf,
+		// File name
+		String,
+		// Tried file names
+		String,
+		// Path to dir
+		PathBuf,
 	),
 
 	/// The provided path specifier cannot be parsed
@@ -102,19 +110,14 @@ pub enum ResolveError {
 }
 
 impl ResolveError {
-	pub fn is_ignore(&self) -> bool {
-		matches!(self, Self::Ignored(_))
-	}
+	pub fn is_ignore(&self) -> bool { matches!(self, Self::Ignored(_)) }
 
-	pub(crate) fn from_serde_json_error(
-		path: PathBuf,
-		error: &serde_json::Error,
-	) -> Self {
+	pub(crate) fn from_serde_json_error(path:PathBuf, error:&serde_json::Error) -> Self {
 		Self::JSON(JSONError {
 			path,
-			message: error.to_string(),
-			line: error.line(),
-			column: error.column(),
+			message:error.to_string(),
+			line:error.line(),
+			column:error.column(),
 		})
 	}
 }
@@ -129,10 +132,10 @@ pub enum SpecifierError {
 /// JSON error from [serde_json::Error]
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct JSONError {
-	pub path: PathBuf,
-	pub message: String,
-	pub line: usize,
-	pub column: usize,
+	pub path:PathBuf,
+	pub message:String,
+	pub line:usize,
+	pub column:usize,
 }
 
 #[derive(Debug, Clone, Error)]
@@ -140,33 +143,27 @@ pub struct JSONError {
 pub struct IOError(Arc<io::Error>);
 
 impl PartialEq for IOError {
-	fn eq(&self, other: &Self) -> bool {
-		self.0.kind() == other.0.kind()
-	}
+	fn eq(&self, other:&Self) -> bool { self.0.kind() == other.0.kind() }
 }
 
 impl From<IOError> for io::Error {
-	fn from(error: IOError) -> Self {
+	fn from(error:IOError) -> Self {
 		let io_error = error.0.as_ref();
 		Self::new(io_error.kind(), io_error.to_string())
 	}
 }
 
 impl From<io::Error> for ResolveError {
-	fn from(err: io::Error) -> Self {
-		Self::IOError(IOError(Arc::new(err)))
-	}
+	fn from(err:io::Error) -> Self { Self::IOError(IOError(Arc::new(err))) }
 }
 
 #[test]
 fn test_into_io_error() {
 	use std::io::{self, ErrorKind};
 	let error_string = "IOError occurred";
-	let string_error =
-		io::Error::new(ErrorKind::Interrupted, error_string.to_string());
-	let string_error2 =
-		io::Error::new(ErrorKind::Interrupted, error_string.to_string());
-	let resolve_io_error: ResolveError = ResolveError::from(string_error2);
+	let string_error = io::Error::new(ErrorKind::Interrupted, error_string.to_string());
+	let string_error2 = io::Error::new(ErrorKind::Interrupted, error_string.to_string());
+	let resolve_io_error:ResolveError = ResolveError::from(string_error2);
 
 	assert_eq!(resolve_io_error, ResolveError::from(string_error));
 	assert_eq!(resolve_io_error.clone(), resolve_io_error);
@@ -178,7 +175,7 @@ fn test_into_io_error() {
 		r#"IOError(Custom { kind: Interrupted, error: "IOError occurred" })"#
 	);
 	// fix for https://github.com/web-infra-dev/rspack/issues/4564
-	let std_io_error: io::Error = io_error.into();
+	let std_io_error:io::Error = io_error.into();
 	assert_eq!(std_io_error.kind(), ErrorKind::Interrupted);
 	assert_eq!(std_io_error.to_string(), error_string);
 	assert_eq!(
