@@ -1,4 +1,4 @@
 packages:
-  - 'npm'
-  - 'napi'
-  - 'fixtures/pnpm'
+    - "npm"
+    - "napi"
+    - "fixtures/pnpm"
