@@ -92,8 +92,7 @@ use crate::{
     package_json::JSONMap,
     path::{PathUtil, SLASH_START},
     specifier::Specifier,
-    tsconfig::ExtendsField,
-    tsconfig::{ProjectReference, TsConfig},
+    tsconfig::{ExtendsField, ProjectReference, TsConfig},
 };
 
 type ResolveResult = Result<Option<CachedPath>, ResolveError>;
@@ -130,6 +129,7 @@ impl<Fs: FileSystem + Default> Default for ResolverGeneric<Fs> {
 }
 
 impl<Fs: FileSystem + Default> ResolverGeneric<Fs> {
+    #[must_use]
     pub fn new(options: ResolveOptions) -> Self {
         Self { options: options.sanitize(), cache: Arc::new(Cache::new(Fs::default())) }
     }
@@ -147,7 +147,8 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
     }
 
     /// Returns the options.
-    pub fn options(&self) -> &ResolveOptions {
+    #[must_use]
+    pub const fn options(&self) -> &ResolveOptions {
         &self.options
     }
 
@@ -325,13 +326,14 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
     //   1. Return the string "node:" concatenated with packageSpecifier.
     fn require_core(&self, specifier: &str) -> Result<(), ResolveError> {
         if self.options.builtin_modules {
-            let starts_with_node = specifier.starts_with("node:");
-            if starts_with_node || NODEJS_BUILTINS.binary_search(&specifier).is_ok() {
-                let mut specifier = specifier.to_string();
-                if !starts_with_node {
-                    specifier = format!("node:{specifier}");
-                }
-                return Err(ResolveError::Builtin(specifier));
+            let is_runtime_module = specifier.starts_with("node:");
+            if is_runtime_module || NODEJS_BUILTINS.binary_search(&specifier).is_ok() {
+                let resolved = if is_runtime_module {
+                    specifier.to_string()
+                } else {
+                    format!("node:{specifier}")
+                };
+                return Err(ResolveError::Builtin { resolved, is_runtime_module });
             }
         }
         Ok(())
@@ -621,7 +623,7 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
                     }
                 }
                 Restriction::RegExp(_) => {
-                    return Err(ResolveError::Unimplemented("Restriction with regex"))
+                    return Err(ResolveError::Unimplemented("Restriction with regex"));
                 }
             }
         }

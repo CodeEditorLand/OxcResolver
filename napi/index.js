@@ -338,22 +338,22 @@ function requireNative() {
 nativeBinding = requireNative();
 
 if (!nativeBinding || process.env.NAPI_RS_FORCE_WASI) {
-	try {
-		nativeBinding = require("./resolver.wasi.cjs");
-	} catch (err) {
-		if (process.env.NAPI_RS_FORCE_WASI) {
-			console.error(err);
-		}
-	}
-	if (!nativeBinding) {
-		try {
-			nativeBinding = require("@oxc-resolver/binding-wasm32-wasi");
-		} catch (err) {
-			if (process.env.NAPI_RS_FORCE_WASI) {
-				console.error(err);
-			}
-		}
-	}
+  try {
+    nativeBinding = require('./resolver.wasi.cjs')
+  } catch (err) {
+    if (process.env.NAPI_RS_FORCE_WASI) {
+      loadErrors.push(err)
+    }
+  }
+  if (!nativeBinding) {
+    try {
+      nativeBinding = require('@oxc-resolver/binding-wasm32-wasi')
+    } catch (err) {
+      if (process.env.NAPI_RS_FORCE_WASI) {
+        loadErrors.push(err)
+      }
+    }
+  }
 }
 
 if (!nativeBinding) {

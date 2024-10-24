@@ -33,16 +33,14 @@ const {
 	module: __wasiModule,
 	napiModule: __napiModule,
 } = __emnapiInstantiateNapiModuleSync(__wasmFile, {
-	context: __emnapiContext,
-	asyncWorkPoolSize: 4,
-	wasi: __wasi,
-	onCreateWorker() {
-		const worker = new Worker(
-			new URL("./wasi-worker-browser.mjs", import.meta.url),
-			{
-				type: "module",
-			},
-		);
+  context: __emnapiContext,
+  asyncWorkPoolSize: 4,
+  wasi: __wasi,
+  onCreateWorker() {
+    const worker = new Worker(new URL('./wasi-worker-browser.mjs', import.meta.url), {
+      type: 'module',
+    })
+    worker.addEventListener('message', __wasmCreateOnMessageForFsProxy(__fs))
 
 		worker.addEventListener(
 			"message",
