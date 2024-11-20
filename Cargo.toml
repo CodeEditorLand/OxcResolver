@@ -3,17 +3,17 @@ members = ["napi"]
 resolver = "2"
 
 [package]
-version = "2.0.1"
-name = "oxc_resolver"
-authors = ["Boshen <boshenc@gmail.com>"]
-categories = ["development-tools"]
-description = "ESM / CJS module resolution"
-edition = "2021"
-homepage = "https://github.com/oxc-project/oxc-resolver"
-keywords = ["node", "resolve", "cjs", "esm", "enhanced-resolve"]
-license = "MIT"
-readme = "README.md"
-repository = "https://github.com/oxc-project/oxc-resolver"
+version      = "2.1.0"
+name         = "oxc_resolver"
+authors      = ["Boshen <boshenc@gmail.com>"]
+categories   = ["development-tools"]
+description  = "ESM / CJS module resolution"
+edition      = "2021"
+homepage     = "https://github.com/oxc-project/oxc-resolver"
+keywords     = ["node", "resolve", "cjs", "esm", "enhanced-resolve"]
+license      = "MIT"
+readme       = "README.md"
+repository   = "https://github.com/oxc-project/oxc-resolver"
 rust-version = "1.74"
 include = ["/src", "/examples", "/benches"]
 
