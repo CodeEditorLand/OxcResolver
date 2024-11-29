@@ -2,6 +2,7 @@
 /* eslint-disable */
 export declare class ResolverFactory {
 	constructor(options?: NapiResolveOptions | undefined | null);
+
 	static default(): ResolverFactory;
 	/** Clone the resolver using the same underlying cache. */
 	cloneWithOptions(options: NapiResolveOptions): ResolverFactory;
@@ -187,6 +188,7 @@ export interface NapiResolveOptions {
 
 export interface ResolveResult {
 	path?: string;
+
 	error?: string;
 	/** "type" field in the package.json file */
 	moduleType?: string;
@@ -198,6 +200,7 @@ export interface ResolveResult {
  */
 export interface Restriction {
 	path?: string;
+
 	regex?: string;
 }
 
