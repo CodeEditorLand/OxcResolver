@@ -8,11 +8,13 @@ fn main() {
 	let path = PathBuf::from(env::args().nth(1).expect("path"));
 
 	assert!(path.is_dir(), "{path:?} must be a directory that will be resolved against.");
+
 	assert!(path.is_absolute(), "{path:?} must be an absolute path.",);
 
 	let specifier = env::args().nth(2).expect("specifier");
 
 	println!("path: {path:?}");
+
 	println!("specifier: {specifier}");
 
 	let options = ResolveOptions {

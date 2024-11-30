@@ -46,6 +46,7 @@ impl PackageJson {
         json: &str,
     ) -> Result<Self, serde_json::Error> {
         let mut raw_json: JSONValue = serde_json::from_str(json)?;
+
         let mut package_json = Self::default();
 
         if let Some(json_object) = raw_json.as_object_mut() {
@@ -53,24 +54,35 @@ impl PackageJson {
             #[cfg(feature = "package_json_raw_json_api")]
             {
                 json_object.remove("description");
+
                 json_object.remove("keywords");
+
                 json_object.remove("scripts");
+
                 json_object.remove("dependencies");
+
                 json_object.remove("devDependencies");
+
                 json_object.remove("peerDependencies");
+
                 json_object.remove("optionalDependencies");
             }
 
             // Add name, type and sideEffects.
             package_json.name =
                 json_object.get("name").and_then(|field| field.as_str()).map(ToString::to_string);
+
             package_json.r#type = json_object.get("type").cloned();
+
             package_json.side_effects = json_object.get("sideEffects").cloned();
         }
 
         package_json.path = path;
+
         package_json.realpath = realpath;
+
         package_json.raw_json = std::sync::Arc::new(raw_json);
+
         Ok(package_json)
     }
 
@@ -81,7 +93,9 @@ impl PackageJson {
         if path.is_empty() {
             return None;
         }
+
         let mut value = fields.get(&path[0])?;
+
         for key in path.iter().skip(1) {
             if let Some(inner_value) = value.as_object().and_then(|o| o.get(key)) {
                 value = inner_value;
@@ -89,6 +103,7 @@ impl PackageJson {
                 return None;
             }
         }
+
         Some(value)
     }
 
@@ -115,6 +130,7 @@ impl PackageJson {
     #[must_use]
     pub fn directory(&self) -> &Path {
         debug_assert!(self.realpath.file_name().is_some_and(|x| x == "package.json"));
+
         self.realpath.parent().unwrap()
     }
 
@@ -200,14 +216,17 @@ impl PackageJson {
                 }
             } else {
                 let dir = self.path.parent().unwrap();
+
                 for (key, value) in object {
                     let joined = dir.normalize_with(key);
+
                     if joined == path {
                         return Self::alias_value(path, value);
                     }
                 }
             }
         }
+
         Ok(None)
     }
 

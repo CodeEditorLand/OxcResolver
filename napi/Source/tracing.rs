@@ -8,6 +8,7 @@ use tracing_subscriber::{
 /// `OXC_LOG=DEBUG your program`
 pub fn init_tracing() {
     static TRACING: OnceLock<()> = OnceLock::new();
+
     TRACING.get_or_init(|| {
         // Usage without the `regex` feature.
         // <https://github.com/tokio-rs/tracing/issues/1436#issuecomment-918528013>
@@ -16,6 +17,7 @@ pub fn init_tracing() {
                 |_| Targets::new(),
                 |env_var| {
                     use std::str::FromStr;
+
                     Targets::from_str(&env_var).unwrap()
                 },
             ))

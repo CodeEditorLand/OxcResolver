@@ -10,8 +10,11 @@ use rayon::prelude::*;
 
 fn data() -> Vec<(PathBuf, &'static str)> {
     let cwd = env::current_dir().unwrap();
+
     let f1 = cwd.join("fixtures/enhanced_resolve");
+
     let f2 = f1.join("test/fixtures");
+
     vec![
         // real packages
         (cwd.clone(), "@napi-rs/cli"),
@@ -81,30 +84,41 @@ fn symlink<P:AsRef<Path>, Q:AsRef<Path>>(original:P, link:Q) -> io::Result<()> {
 
 fn create_symlinks() -> io::Result<PathBuf> {
 	let root = env::current_dir()?.join("fixtures/enhanced_resolve");
+
 	let dirname = root.join("test");
+
 	let temp_path = dirname.join("temp_symlinks");
+
 	let create_symlink_fixtures = || -> io::Result<()> {
 		fs::create_dir(&temp_path)?;
+
 		let mut index = fs::File::create(temp_path.join("index.js"))?;
+
 		index.write_all(b"console.log('Hello, World!')")?;
 		// create 10000 symlink files pointing to the index.js
 		for i in 0..10000 {
 			symlink(temp_path.join("index.js"), temp_path.join(format!("file{i}.js")))?;
 		}
+
 		Ok(())
 	};
+
 	if !temp_path.exists() {
 		if let Err(err) = create_symlink_fixtures() {
 			let _ = fs::remove_dir_all(&temp_path);
+
 			return Err(err);
 		}
 	}
+
 	Ok(temp_path)
 }
 
 fn oxc_resolver() -> oxc_resolver::Resolver {
 	use oxc_resolver::{AliasValue, ResolveOptions, Resolver};
+
 	let alias_value = AliasValue::from("./");
+
 	Resolver::new(ResolveOptions {
 		extensions:vec![".ts".into(), ".js".into()],
 		condition_names:vec!["webpack".into(), "require".into()],
@@ -167,6 +181,7 @@ fn bench_resolver(c:&mut Criterion) {
 
 	group.bench_with_input(BenchmarkId::from_parameter("single-thread"), &data, |b, data| {
 		let oxc_resolver = oxc_resolver();
+
 		b.iter(|| {
 			for (path, request) in data {
 				_ = oxc_resolver.resolve(path, request);
@@ -176,6 +191,7 @@ fn bench_resolver(c:&mut Criterion) {
 
 	group.bench_with_input(BenchmarkId::from_parameter("multi-thread"), &data, |b, data| {
 		let oxc_resolver = oxc_resolver();
+
 		b.iter(|| {
 			data.par_iter().for_each(|(path, request)| {
 				_ = oxc_resolver.resolve(path, request);
@@ -188,6 +204,7 @@ fn bench_resolver(c:&mut Criterion) {
 		&symlinks_range,
 		|b, data| {
 			let oxc_resolver = oxc_resolver();
+
 			b.iter(|| {
 				for i in data.clone() {
 					assert!(

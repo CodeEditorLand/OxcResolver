@@ -38,25 +38,33 @@ impl<Fs: FileSystem> Cache<Fs> {
 
     pub fn clear(&self) {
         self.paths.clear();
+
         self.tsconfigs.clear();
     }
 
     pub fn value(&self, path: &Path) -> CachedPath {
         let hash = {
             let mut hasher = FxHasher::default();
+
             path.as_os_str().hash(&mut hasher);
+
             hasher.finish()
         };
+
         if let Some(cache_entry) = self.paths.get((hash, path).borrow() as &dyn CacheKey) {
             return cache_entry.clone();
         }
+
         let parent = path.parent().map(|p| self.value(p));
+
         let data = CachedPath(Arc::new(CachedPathImpl::new(
             hash,
             path.to_path_buf().into_boxed_path(),
             parent,
         )));
+
         self.paths.insert(data.clone());
+
         data
     }
 
@@ -69,27 +77,37 @@ impl<Fs: FileSystem> Cache<Fs> {
         if let Some(tsconfig_ref) = self.tsconfigs.get(path) {
             return Ok(Arc::clone(tsconfig_ref.value()));
         }
+
         let meta = self.fs.metadata(path).ok();
+
         let tsconfig_path = if meta.is_some_and(|m| m.is_file) {
             Cow::Borrowed(path)
         } else if meta.is_some_and(|m| m.is_dir) {
             Cow::Owned(path.join("tsconfig.json"))
         } else {
             let mut os_string = path.to_path_buf().into_os_string();
+
             os_string.push(".json");
+
             Cow::Owned(PathBuf::from(os_string))
         };
+
         let mut tsconfig_string = self
             .fs
             .read_to_string(&tsconfig_path)
             .map_err(|_| ResolveError::TsconfigNotFound(path.to_path_buf()))?;
+
         let mut tsconfig =
             TsConfig::parse(root, &tsconfig_path, &mut tsconfig_string).map_err(|error| {
                 ResolveError::from_serde_json_error(tsconfig_path.to_path_buf(), &error)
             })?;
+
         callback(&mut tsconfig)?;
+
         let tsconfig = Arc::new(tsconfig.build());
+
         self.tsconfigs.insert(path.to_path_buf(), Arc::clone(&tsconfig));
+
         Ok(tsconfig)
     }
 }
@@ -180,9 +198,11 @@ impl CachedPath {
     pub fn is_file<Fs: FileSystem>(&self, fs: &Fs, ctx: &mut Ctx) -> bool {
         if let Some(meta) = self.meta(fs) {
             ctx.add_file_dependency(self.path());
+
             meta.is_file
         } else {
             ctx.add_missing_dependency(self.path());
+
             false
         }
     }
@@ -191,6 +211,7 @@ impl CachedPath {
         self.meta(fs).map_or_else(
             || {
                 ctx.add_missing_dependency(self.path());
+
                 false
             },
             |meta| meta.is_dir,
@@ -202,14 +223,19 @@ impl CachedPath {
             .get_or_try_init(|| {
                 if cache.fs.symlink_metadata(&self.path).is_ok_and(|m| m.is_symlink) {
                     let canonicalized = cache.fs.canonicalize(&self.path)?;
+
                     return Ok(Some(cache.value(&canonicalized)));
                 }
+
                 if let Some(parent) = self.parent() {
                     let parent_path = parent.realpath(cache)?;
+
                     let normalized = parent_path
                         .normalize_with(self.path.strip_prefix(&parent.path).unwrap(), cache);
+
                     return Ok(Some(normalized));
                 };
+
                 Ok(None)
             })
             .cloned()
@@ -223,6 +249,7 @@ impl CachedPath {
         ctx: &mut Ctx,
     ) -> Option<Self> {
         let cached_path = cache.value(&self.path.join(module_name));
+
         cached_path.is_dir(&cache.fs, ctx).then_some(cached_path)
     }
 
@@ -250,14 +277,17 @@ impl CachedPath {
             .package_json
             .get_or_try_init(|| {
                 let package_json_path = self.path.join("package.json");
+
                 let Ok(package_json_string) = cache.fs.read_to_string(&package_json_path) else {
                     return Ok(None);
                 };
+
                 let real_path = if options.symlinks {
                     self.realpath(cache)?.path().join("package.json")
                 } else {
                     package_json_path.clone()
                 };
+
                 PackageJson::parse(package_json_path.clone(), real_path, &package_json_string)
                     .map(|package_json| Some((self.clone(), (Arc::new(package_json)))))
                     .map_err(|error| ResolveError::from_serde_json_error(package_json_path, &error))
@@ -268,18 +298,21 @@ impl CachedPath {
             Ok(Some((_, package_json))) => {
                 ctx.add_file_dependency(&package_json.path);
             }
+
             Ok(None) => {
                 // Avoid an allocation by making this lazy
                 if let Some(deps) = &mut ctx.missing_dependencies {
                     deps.push(self.path.join("package.json"));
                 }
             }
+
             Err(_) => {
                 if let Some(deps) = &mut ctx.file_dependencies {
                     deps.push(self.path.join("package.json"));
                 }
             }
         }
+
         result
     }
 
@@ -303,13 +336,17 @@ impl CachedPath {
                 break;
             }
         }
+
         let mut cache_value = Some(cache_value);
+
         while let Some(cv) = cache_value {
             if let Some(package_json) = cv.package_json(options, cache, ctx)? {
                 return Ok(Some(package_json));
             }
+
             cache_value = cv.parent.as_ref();
         }
+
         Ok(None)
     }
 
@@ -317,10 +354,15 @@ impl CachedPath {
         SCRATCH_PATH.with(|path| {
             // SAFETY: ???
             let path = unsafe { &mut *path.get() };
+
             path.clear();
+
             let s = path.as_mut_os_string();
+
             s.push(self.path.as_os_str());
+
             s.push(ext);
+
             cache.value(path)
         })
     }
@@ -329,16 +371,23 @@ impl CachedPath {
         SCRATCH_PATH.with(|path| {
             // SAFETY: ???
             let path = unsafe { &mut *path.get() };
+
             path.clear();
+
             let s = path.as_mut_os_string();
+
             let self_len = self.path.as_os_str().len();
+
             let self_bytes = self.path.as_os_str().as_encoded_bytes();
+
             let slice_to_copy = self.path.extension().map_or(self_bytes, |previous_extension| {
                 &self_bytes[..self_len - previous_extension.len() - 1]
             });
             // SAFETY: ???
             s.push(unsafe { std::ffi::OsStr::from_encoded_bytes_unchecked(slice_to_copy) });
+
             s.push(ext);
+
             cache.value(path)
         })
     }
@@ -350,25 +399,35 @@ impl CachedPath {
         Fs: FileSystem,
     {
         let subpath = subpath.as_ref();
+
         let mut components = subpath.components();
+
         let Some(head) = components.next() else { return cache.value(subpath) };
+
         if matches!(head, Component::Prefix(..) | Component::RootDir) {
             return cache.value(subpath);
         }
+
         SCRATCH_PATH.with(|path| {
             // SAFETY: ???
             let path = unsafe { &mut *path.get() };
+
             path.clear();
+
             path.push(&self.path);
+
             for component in std::iter::once(head).chain(components) {
                 match component {
                     Component::CurDir => {}
+
                     Component::ParentDir => {
                         path.pop();
                     }
+
                     Component::Normal(c) => {
                         path.push(c);
                     }
+
                     Component::Prefix(..) | Component::RootDir => {
                         unreachable!("Path {:?} Subpath {:?}", self.path, subpath)
                     }

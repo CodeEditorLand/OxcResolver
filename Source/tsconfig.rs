@@ -80,6 +80,7 @@ impl TsConfig {
     /// * When the `tsconfig.json` path is misconfigured.
     pub fn directory(&self) -> &Path {
         debug_assert!(self.path.file_name().is_some());
+
         self.path.parent().unwrap()
     }
 
@@ -89,17 +90,24 @@ impl TsConfig {
         json: &mut str,
     ) -> Result<Self, serde_json::Error> {
         _ = json_strip_comments::strip(json);
+
         let mut tsconfig: Self = serde_json::from_str(json)?;
+
         tsconfig.root = root;
+
         tsconfig.path = path.to_path_buf();
+
         let directory = tsconfig.directory().to_path_buf();
+
         if let Some(base_url) = tsconfig.compiler_options.base_url {
             tsconfig.compiler_options.base_url = Some(directory.normalize_with(base_url));
         }
+
         if tsconfig.compiler_options.paths.is_some() {
             tsconfig.compiler_options.paths_base =
                 tsconfig.compiler_options.base_url.as_ref().map_or(directory, Clone::clone);
         }
+
         Ok(tsconfig)
     }
 
@@ -115,18 +123,22 @@ impl TsConfig {
                 }
             }
         }
+
         self
     }
 
     pub(crate) fn extend_tsconfig(&mut self, tsconfig: &Self) {
         let compiler_options = &mut self.compiler_options;
+
         if compiler_options.paths.is_none() {
             compiler_options.paths_base = compiler_options
                 .base_url
                 .as_ref()
                 .map_or_else(|| tsconfig.compiler_options.paths_base.clone(), Clone::clone);
+
             compiler_options.paths.clone_from(&tsconfig.compiler_options.paths);
         }
+
         if compiler_options.base_url.is_none() {
             compiler_options.base_url.clone_from(&tsconfig.compiler_options.base_url);
         }
@@ -135,15 +147,18 @@ impl TsConfig {
     pub(crate) fn resolve(&self, path: &Path, specifier: &str) -> Vec<PathBuf> {
         if path.starts_with(self.base_path()) {
             let paths = self.resolve_path_alias(specifier);
+
             if !paths.is_empty() {
                 return paths;
             }
         }
+
         for tsconfig in self.references.iter().filter_map(|reference| reference.tsconfig.as_ref()) {
             if path.starts_with(tsconfig.base_path()) {
                 return tsconfig.resolve_path_alias(specifier);
             }
         }
+
         vec![]
     }
 
@@ -167,7 +182,9 @@ impl TsConfig {
         let paths = paths_map.get(specifier).map_or_else(
             || {
                 let mut longest_prefix_length = 0;
+
                 let mut longest_suffix_length = 0;
+
                 let mut best_key: Option<&String> = None;
 
                 for key in paths_map.keys() {
@@ -177,7 +194,9 @@ impl TsConfig {
                             && specifier.ends_with(suffix)
                         {
                             longest_prefix_length = prefix.len();
+
                             longest_suffix_length = suffix.len();
+
                             best_key.replace(key);
                         }
                     }
@@ -220,6 +239,7 @@ impl TsConfig {
     /// See <https://github.com/microsoft/TypeScript/pull/58042>
     fn substitute_template_variable(directory: &Path, path: &mut String) {
         const TEMPLATE_VARIABLE: &str = "${configDir}/";
+
         if let Some(stripped_path) = path.strip_prefix(TEMPLATE_VARIABLE) {
             *path = directory.join(stripped_path).to_string_lossy().to_string();
         }

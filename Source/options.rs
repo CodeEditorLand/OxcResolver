@@ -176,6 +176,7 @@ impl ResolveOptions {
     #[must_use]
     pub fn with_condition_names(mut self, names: &[&str]) -> Self {
         self.condition_names = names.iter().map(ToString::to_string).collect::<Vec<String>>();
+
         self
     }
 
@@ -190,6 +191,7 @@ impl ResolveOptions {
     #[must_use]
     pub const fn with_builtin_modules(mut self, flag: bool) -> Self {
         self.builtin_modules = flag;
+
         self
     }
 
@@ -207,6 +209,7 @@ impl ResolveOptions {
     #[must_use]
     pub fn with_root<P: AsRef<Path>>(mut self, root: P) -> Self {
         self.roots.push(root.as_ref().to_path_buf());
+
         self
     }
 
@@ -224,6 +227,7 @@ impl ResolveOptions {
     #[must_use]
     pub fn with_extension<S: Into<String>>(mut self, extension: S) -> Self {
         self.extensions.push(extension.into());
+
         self
     }
 
@@ -241,6 +245,7 @@ impl ResolveOptions {
     #[must_use]
     pub fn with_main_field<S: Into<String>>(mut self, field: S) -> Self {
         self.main_fields.push(field.into());
+
         self
     }
 
@@ -258,6 +263,7 @@ impl ResolveOptions {
     #[must_use]
     pub const fn with_force_extension(mut self, enforce_extension: EnforceExtension) -> Self {
         self.enforce_extension = enforce_extension;
+
         self
     }
 
@@ -275,6 +281,7 @@ impl ResolveOptions {
     #[must_use]
     pub const fn with_fully_specified(mut self, fully_specified: bool) -> Self {
         self.fully_specified = fully_specified;
+
         self
     }
 
@@ -292,6 +299,7 @@ impl ResolveOptions {
     #[must_use]
     pub const fn with_prefer_relative(mut self, flag: bool) -> Self {
         self.prefer_relative = flag;
+
         self
     }
 
@@ -309,6 +317,7 @@ impl ResolveOptions {
     #[must_use]
     pub const fn with_prefer_absolute(mut self, flag: bool) -> Self {
         self.prefer_absolute = flag;
+
         self
     }
 
@@ -325,6 +334,7 @@ impl ResolveOptions {
     #[must_use]
     pub const fn with_symbolic_link(mut self, flag: bool) -> Self {
         self.symlinks = flag;
+
         self
     }
 
@@ -341,6 +351,7 @@ impl ResolveOptions {
     #[must_use]
     pub fn with_module<M: Into<String>>(mut self, module: M) -> Self {
         self.modules.push(module.into());
+
         self
     }
 
@@ -357,6 +368,7 @@ impl ResolveOptions {
     #[must_use]
     pub fn with_main_file<M: Into<String>>(mut self, module: M) -> Self {
         self.main_files.push(module.into());
+
         self
     }
 
@@ -374,6 +386,7 @@ impl ResolveOptions {
                 self.enforce_extension = EnforceExtension::Disabled;
             }
         }
+
         self
     }
 }
@@ -494,66 +507,87 @@ impl fmt::Display for ResolveOptions {
         if let Some(tsconfig) = &self.tsconfig {
             write!(f, "tsconfig:{tsconfig:?},")?;
         }
+
         if !self.alias.is_empty() {
             write!(f, "alias:{:?},", self.alias)?;
         }
+
         if !self.alias_fields.is_empty() {
             write!(f, "alias_fields:{:?},", self.alias_fields)?;
         }
+
         if !self.condition_names.is_empty() {
             write!(f, "condition_names:{:?},", self.condition_names)?;
         }
+
         if self.enforce_extension.is_enabled() {
             write!(f, "enforce_extension:{:?},", self.enforce_extension)?;
         }
+
         if !self.exports_fields.is_empty() {
             write!(f, "exports_fields:{:?},", self.exports_fields)?;
         }
+
         if !self.imports_fields.is_empty() {
             write!(f, "imports_fields:{:?},", self.imports_fields)?;
         }
+
         if !self.extension_alias.is_empty() {
             write!(f, "extension_alias:{:?},", self.extension_alias)?;
         }
+
         if !self.extensions.is_empty() {
             write!(f, "extensions:{:?},", self.extensions)?;
         }
+
         if !self.fallback.is_empty() {
             write!(f, "fallback:{:?},", self.fallback)?;
         }
+
         if self.fully_specified {
             write!(f, "fully_specified:{:?},", self.fully_specified)?;
         }
+
         if !self.main_fields.is_empty() {
             write!(f, "main_fields:{:?},", self.main_fields)?;
         }
+
         if !self.main_files.is_empty() {
             write!(f, "main_files:{:?},", self.main_files)?;
         }
+
         if !self.modules.is_empty() {
             write!(f, "modules:{:?},", self.modules)?;
         }
+
         if self.resolve_to_context {
             write!(f, "resolve_to_context:{:?},", self.resolve_to_context)?;
         }
+
         if self.prefer_relative {
             write!(f, "prefer_relative:{:?},", self.prefer_relative)?;
         }
+
         if self.prefer_absolute {
             write!(f, "prefer_absolute:{:?},", self.prefer_absolute)?;
         }
+
         if !self.restrictions.is_empty() {
             write!(f, "restrictions:{:?},", self.restrictions)?;
         }
+
         if !self.roots.is_empty() {
             write!(f, "roots:{:?},", self.roots)?;
         }
+
         if self.symlinks {
             write!(f, "symlinks:{:?},", self.symlinks)?;
         }
+
         if self.builtin_modules {
             write!(f, "builtin_modules:{:?},", self.builtin_modules)?;
         }
+
         Ok(())
     }
 }
@@ -570,15 +604,21 @@ mod test {
     #[test]
     fn enforce_extension() {
         assert!(EnforceExtension::Auto.is_auto());
+
         assert!(!EnforceExtension::Enabled.is_auto());
+
         assert!(!EnforceExtension::Disabled.is_auto());
 
         assert!(!EnforceExtension::Auto.is_enabled());
+
         assert!(EnforceExtension::Enabled.is_enabled());
+
         assert!(!EnforceExtension::Disabled.is_enabled());
 
         assert!(!EnforceExtension::Auto.is_disabled());
+
         assert!(!EnforceExtension::Enabled.is_disabled());
+
         assert!(EnforceExtension::Disabled.is_disabled());
     }
 
@@ -608,6 +648,7 @@ mod test {
         };
 
         let expected = r#"tsconfig:TsconfigOptions { config_file: "tsconfig.json", references: Auto },alias:[("a", [Ignore])],alias_fields:[["browser"]],condition_names:["require"],enforce_extension:Enabled,exports_fields:[["exports"]],imports_fields:[["imports"]],extension_alias:[(".js", [".ts"])],extensions:[".js", ".json", ".node"],fallback:[("fallback", [Ignore])],fully_specified:true,main_fields:["main"],main_files:["index"],modules:["node_modules"],resolve_to_context:true,prefer_relative:true,prefer_absolute:true,restrictions:[Path("restrictions")],roots:["roots"],symlinks:true,builtin_modules:true,"#;
+
         assert_eq!(format!("{options}"), expected);
 
         let options = ResolveOptions {

@@ -146,6 +146,7 @@ impl PartialEq for IOError {
 impl From<IOError> for io::Error {
     fn from(error: IOError) -> Self {
         let io_error = error.0.as_ref();
+
         Self::new(io_error.kind(), io_error.to_string())
     }
 }
@@ -159,22 +160,32 @@ impl From<io::Error> for ResolveError {
 #[test]
 fn test_into_io_error() {
     use std::io::{self, ErrorKind};
+
     let error_string = "IOError occurred";
+
     let string_error = io::Error::new(ErrorKind::Interrupted, error_string.to_string());
+
     let string_error2 = io::Error::new(ErrorKind::Interrupted, error_string.to_string());
+
     let resolve_io_error: ResolveError = ResolveError::from(string_error2);
 
     assert_eq!(resolve_io_error, ResolveError::from(string_error));
+
     assert_eq!(resolve_io_error.clone(), resolve_io_error);
+
     let ResolveError::IOError(io_error) = resolve_io_error else { unreachable!() };
+
     assert_eq!(
         format!("{io_error:?}"),
         r#"IOError(Custom { kind: Interrupted, error: "IOError occurred" })"#
     );
     // fix for https://github.com/web-infra-dev/rspack/issues/4564
     let std_io_error: io::Error = io_error.into();
+
     assert_eq!(std_io_error.kind(), ErrorKind::Interrupted);
+
     assert_eq!(std_io_error.to_string(), error_string);
+
     assert_eq!(
         format!("{std_io_error:?}"),
         r#"Custom { kind: Interrupted, error: "IOError occurred" }"#
@@ -184,10 +195,14 @@ fn test_into_io_error() {
 #[test]
 fn test_coverage() {
     let error = ResolveError::NotFound("x".into());
+
     assert_eq!(format!("{error:?}"), r#"NotFound("x")"#);
+
     assert_eq!(error.clone(), error);
 
     let error = ResolveError::Specifier(SpecifierError::Empty("x".into()));
+
     assert_eq!(format!("{error:?}"), r#"Specifier(Empty("x"))"#);
+
     assert_eq!(error.clone(), error);
 }

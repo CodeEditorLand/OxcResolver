@@ -35,9 +35,12 @@ impl PathUtil for Path {
 	// https://github.com/parcel-bundler/parcel/blob/e0b99c2a42e9109a9ecbd6f537844a1b33e7faf5/packages/utils/node-resolver-rs/src/path.rs#L7
 	fn normalize(&self) -> PathBuf {
 		let mut components = self.components().peekable();
+
 		let mut ret = if let Some(c @ Component::Prefix(..)) = components.peek() {
 			let buf = PathBuf::from(c.as_os_str());
+
 			components.next();
+
 			buf
 		} else {
 			PathBuf::new()
@@ -77,6 +80,7 @@ impl PathUtil for Path {
 		}
 
 		let mut ret = self.to_path_buf();
+
 		for component in std::iter::once(head).chain(components) {
 			match component {
 				Component::CurDir => {},
@@ -127,13 +131,17 @@ fn is_invalid_exports_target() {
 	}
 
 	assert!(!Path::new("C:").is_invalid_exports_target());
+
 	assert!(!Path::new("/").is_invalid_exports_target());
 }
 
 #[test]
 fn normalize() {
 	assert_eq!(Path::new("/foo/.././foo/").normalize(), Path::new("/foo"));
+
 	assert_eq!(Path::new("C://").normalize(), Path::new("C://"));
+
 	assert_eq!(Path::new("C:").normalize(), Path::new("C:"));
+
 	assert_eq!(Path::new(r"\\server\share").normalize(), Path::new(r"\\server\share"));
 }

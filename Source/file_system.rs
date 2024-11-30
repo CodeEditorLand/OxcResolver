@@ -114,6 +114,7 @@ impl Default for FileSystemOs {
 fn read_to_string(path: &Path) -> io::Result<String> {
     // `simdutf8` is faster than `std::str::from_utf8` which `fs::read_to_string` uses internally
     let bytes = std::fs::read(path)?;
+
     if simdutf8::basic::from_utf8(&bytes).is_err() {
         // Same error as `fs::read_to_string` produces (`io::Error::INVALID_UTF8`)
         return Err(io::Error::new(
@@ -133,6 +134,7 @@ impl FileSystem for FileSystemOs {
                     VPath::Zip(info) => {
                         self.pnp_lru.read_to_string(info.physical_base_path(), info.zip_path)
                     }
+
                     VPath::Virtual(info) => read_to_string(&info.physical_base_path()),
                     VPath::Native(path) => read_to_string(&path),
                 }
@@ -153,6 +155,7 @@ impl FileSystem for FileSystemOs {
                     VPath::Virtual(info) => {
                         fs::metadata(info.physical_base_path()).map(FileMetadata::from)
                     }
+
                     VPath::Native(path) => fs::metadata(path).map(FileMetadata::from),
                 }
             } else {
@@ -183,10 +186,12 @@ impl FileSystem for FileSystemOs {
 #[test]
 fn metadata() {
     let meta = FileMetadata { is_file: true, is_dir: true, is_symlink: true };
+
     assert_eq!(
         format!("{meta:?}"),
         "FileMetadata { is_file: true, is_dir: true, is_symlink: true }"
     );
+
     let _ = meta;
 }
 
@@ -208,19 +213,24 @@ fn fast_canonicalize<P: AsRef<Path>>(path: P) -> io::Result<PathBuf> {
 // This is A faster fs::canonicalize implementation by reducing the number of syscalls
 fn fast_canonicalize_non_windows(path: PathBuf) -> io::Result<PathBuf> {
     use std::path::Component;
+
     let mut path_buf = path;
 
     loop {
         let link = fs::read_link(&path_buf)?;
+
         path_buf.pop();
+
         if fs::symlink_metadata(&path_buf)?.is_symlink() {
             path_buf = fast_canonicalize(path_buf)?;
         }
+
         for component in link.components() {
             match component {
                 Component::ParentDir => {
                     path_buf.pop();
                 }
+
                 Component::Normal(seg) => {
                     #[cfg(target_family = "wasm")]
                     {
@@ -232,9 +242,11 @@ fn fast_canonicalize_non_windows(path: PathBuf) -> io::Result<PathBuf> {
                         path_buf.push(seg);
                     }
                 }
+
                 Component::RootDir => {
                     path_buf = PathBuf::from("/");
                 }
+
                 Component::CurDir | Component::Prefix(_) => {}
             }
 
@@ -242,16 +254,19 @@ fn fast_canonicalize_non_windows(path: PathBuf) -> io::Result<PathBuf> {
                 path_buf = fast_canonicalize(path_buf)?;
             }
         }
+
         if !fs::symlink_metadata(&path_buf)?.is_symlink() {
             break;
         }
     }
+
     Ok(path_buf)
 }
 
 #[cfg(windows)]
 fn node_compatible_raw_canonicalize<P: AsRef<Path>>(path: P) -> PathBuf {
     let path_bytes = path.as_ref().as_os_str().as_encoded_bytes();
+
     path_bytes
         .strip_prefix(UNC_PATH_PREFIX)
         .or_else(|| path_bytes.strip_prefix(LONG_PATH_PREFIX))

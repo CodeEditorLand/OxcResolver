@@ -73,12 +73,15 @@ impl Resolution {
     #[must_use]
     pub fn full_path(&self) -> PathBuf {
         let mut path = self.path.clone().into_os_string();
+
         if let Some(query) = &self.query {
             path.push(query);
         }
+
         if let Some(fragment) = &self.fragment {
             path.push(fragment);
         }
+
         PathBuf::from(path)
     }
 }
@@ -91,9 +94,14 @@ fn test() {
         fragment: Some("#fragment".to_string()),
         package_json: None,
     };
+
     assert_eq!(resolution.path(), Path::new("foo"));
+
     assert_eq!(resolution.query(), Some("?query"));
+
     assert_eq!(resolution.fragment(), Some("#fragment"));
+
     assert_eq!(resolution.full_path(), PathBuf::from("foo?query#fragment"));
+
     assert_eq!(resolution.into_path_buf(), PathBuf::from("foo"));
 }

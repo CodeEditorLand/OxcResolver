@@ -46,7 +46,9 @@ fn resolve(resolver: &Resolver, path: &Path, request: &str) -> ResolveResult {
 #[napi]
 pub fn sync(path: String, request: String) -> ResolveResult {
     let path = PathBuf::from(path);
+
     let resolver = Resolver::new(ResolveOptions::default());
+
     resolve(&resolver, &path, &request)
 }
 
@@ -59,6 +61,7 @@ pub struct ResolveTask {
 #[napi]
 impl Task for ResolveTask {
     type JsValue = ResolveResult;
+
     type Output = ResolveResult;
 
     fn compute(&mut self) -> napi::Result<Self::Output> {
@@ -80,13 +83,16 @@ impl ResolverFactory {
     #[napi(constructor)]
     pub fn new(options: Option<NapiResolveOptions>) -> Self {
         init_tracing();
+
         let options = options.map_or_else(|| ResolveOptions::default(), Self::normalize_options);
+
         Self { resolver: Arc::new(Resolver::new(options)) }
     }
 
     #[napi]
     pub fn default() -> Self {
         let default_options = ResolveOptions::default();
+
         Self { resolver: Arc::new(Resolver::new(default_options)) }
     }
 
@@ -109,6 +115,7 @@ impl ResolverFactory {
     #[napi]
     pub fn sync(&self, directory: String, request: String) -> ResolveResult {
         let path = PathBuf::from(directory);
+
         resolve(&self.resolver, &path, &request)
     }
 
@@ -117,7 +124,9 @@ impl ResolverFactory {
     #[napi(js_name = "async")]
     pub fn resolve_async(&self, directory: String, request: String) -> AsyncTask<ResolveTask> {
         let path = PathBuf::from(directory);
+
         let resolver = self.resolver.clone();
+
         AsyncTask::new(ResolveTask { resolver, directory: path, request })
     }
 

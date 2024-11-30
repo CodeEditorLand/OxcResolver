@@ -235,9 +235,11 @@ impl Into<oxc_resolver::TsconfigOptions> for TsconfigOptions {
                 Some(Either::A(string)) if string.as_str() == "auto" => {
                     oxc_resolver::TsconfigReferences::Auto
                 }
+
                 Some(Either::A(opt)) => {
                     panic!("`{}` is not a valid option for  tsconfig references", opt)
                 }
+
                 Some(Either::B(paths)) => oxc_resolver::TsconfigReferences::Paths(
                     paths.into_iter().map(PathBuf::from).collect::<Vec<_>>(),
                 ),

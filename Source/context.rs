@@ -46,6 +46,7 @@ impl ResolveContext {
 		if let Some(query) = query {
 			self.query.replace(query.to_string());
 		}
+
 		if let Some(fragment) = fragment {
 			self.fragment.replace(fragment.to_string());
 		}
@@ -53,6 +54,7 @@ impl ResolveContext {
 
 	pub fn init_file_dependencies(&mut self) {
 		self.file_dependencies.replace(vec![]);
+
 		self.missing_dependencies.replace(vec![]);
 	}
 
@@ -76,6 +78,7 @@ impl ResolveContext {
 		if self.depth > 64 {
 			return Err(ResolveError::Recursion);
 		}
+
 		Ok(())
 	}
 }
