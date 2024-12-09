@@ -1,6 +1,8 @@
 {
 	"browser": "browser.js",
+	"dependencies": {},
 	"description": "Oxc Resolver Node API",
+	"devDependencies": {},
 	"files": [
 		"index.d.ts",
 		"index.js",

@@ -5,6 +5,7 @@
 			"napi/__test__/*.spec.mjs"
 		]
 	},
+	"dependencies": {},
 	"devDependencies": {
 		"@napi-rs/cli": "3.0.0-alpha.64",
 		"@napi-rs/wasm-runtime": "^0.2.5",
