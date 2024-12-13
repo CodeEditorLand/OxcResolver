@@ -77,7 +77,7 @@ use serde_json::Value as JSONValue;
 pub use crate::{
     builtins::NODEJS_BUILTINS,
     error::{JSONError, ResolveError, SpecifierError},
-    file_system::{FileMetadata, FileSystem},
+    file_system::{FileMetadata, FileSystem, FileSystemOs},
     options::{
         Alias, AliasValue, EnforceExtension, ResolveOptions, Restriction, TsconfigOptions,
         TsconfigReferences,
@@ -88,7 +88,6 @@ pub use crate::{
 use crate::{
     cache::{Cache, CachedPath},
     context::ResolveContext as Ctx,
-    file_system::FileSystemOs,
     package_json::JSONMap,
     path::{PathUtil, SLASH_START},
     specifier::Specifier,
@@ -652,7 +651,7 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
 
     fn load_realpath(&self, cached_path: &CachedPath) -> Result<PathBuf, ResolveError> {
         if self.options.symlinks {
-            cached_path.realpath(&self.cache).map(|c| c.to_path_buf()).map_err(ResolveError::from)
+            cached_path.canonicalize(&self.cache)
         } else {
             Ok(cached_path.to_path_buf())
         }
@@ -725,12 +724,14 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
             }
         }
         // enhanced-resolve: try file as alias
-        let alias_specifier = cached_path.path().to_string_lossy();
-
-        if let Some(path) =
-            self.load_alias(cached_path, &alias_specifier, &self.options.alias, ctx)?
-        {
-            return Ok(Some(path));
+        // Guard this because this is on a hot path, and `.to_string_lossy()` has a cost.
+        if !self.options.alias.is_empty() {
+            let alias_specifier = cached_path.path().to_string_lossy();
+            if let Some(path) =
+                self.load_alias(cached_path, &alias_specifier, &self.options.alias, ctx)?
+            {
+                return Ok(Some(path));
+            }
         }
 
         if cached_path.is_file(&self.cache.fs, ctx) {
@@ -801,9 +802,21 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
                 // Try as file or directory for all other cases
                 // b. LOAD_AS_FILE(DIR/X)
                 // c. LOAD_AS_DIRECTORY(DIR/X)
+
                 let cached_path = cached_path.normalize_with(specifier, &self.cache);
 
-                if let Some(path) = self.load_as_file_or_directory(&cached_path, specifier, ctx)? {
+                // Perf: try the directory first for package specifiers.
+                if cached_path.is_dir(&self.cache.fs, ctx) {
+                    if let Some(path) = self.load_as_directory(&cached_path, ctx)? {
+                        return Ok(Some(path));
+                    }
+                }
+                if self.options.resolve_to_context {
+                    return Ok(cached_path
+                        .is_dir(&self.cache.fs, ctx)
+                        .then(|| cached_path.clone()));
+                }
+                if let Some(path) = self.load_as_file(&cached_path, ctx)? {
                     return Ok(Some(path));
                 }
             }
@@ -1088,20 +1101,20 @@ impl<Fs: FileSystem> ResolverGeneric<Fs> {
             let new_specifier = if tail.is_empty() {
                 Cow::Borrowed(alias_value)
             } else {
-                let alias_value = Path::new(alias_value).normalize();
+                let alias_path = Path::new(alias_value).normalize();
                 // Must not append anything to alias_value if it is a file.
-                let alias_value_cached_path = self.cache.value(&alias_value);
-
-                if alias_value_cached_path.is_file(&self.cache.fs, ctx) {
+                let cached_alias_path = self.cache.value(&alias_path);
+                if cached_alias_path.is_file(&self.cache.fs, ctx) {
                     return Ok(None);
                 }
-
                 // Remove the leading slash so the final path is concatenated.
                 let tail = tail.trim_start_matches(SLASH_START);
-
-                let normalized = alias_value_cached_path.normalize_with(tail, &self.cache);
-
-                Cow::Owned(normalized.path().to_string_lossy().to_string())
+                if tail.is_empty() {
+                    Cow::Borrowed(alias_value)
+                } else {
+                    let normalized = alias_path.normalize_with(tail);
+                    Cow::Owned(normalized.to_string_lossy().to_string())
+                }
             };
 
             *should_stop = true;

@@ -32,6 +32,9 @@ watch *args='':
 watch-check:
   just watch "'cargo check; cargo clippy'"
 
+watch-example *args='':
+  just watch "cargo run --example resolver -- {{args}}"
+
 # Run the example in `parser`, `formatter`, `linter`
 example *args='':
   cargo run --example resolver -- {{args}}
@@ -52,7 +55,7 @@ test:
 
 # Lint the whole project
 lint:
-  cargo clippy --all-features -- --deny warnings
+  cargo clippy --all-features --all-targets -- --deny warnings
 
 # Generate doc
 doc:
