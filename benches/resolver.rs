@@ -5,69 +5,69 @@ use std::{
 	path::{Path, PathBuf},
 };
 
-use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
+use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
 use rayon::prelude::*;
 
 fn data() -> Vec<(PathBuf, &'static str)> {
-    let cwd = env::current_dir().unwrap();
+	let cwd = env::current_dir().unwrap();
 
-    let f1 = cwd.join("fixtures/enhanced_resolve");
+	let f1 = cwd.join("fixtures/enhanced_resolve");
 
-    let f2 = f1.join("test/fixtures");
+	let f2 = f1.join("test/fixtures");
 
-    vec![
-        // real packages
-        (cwd.clone(), "@napi-rs/cli"),
-        (cwd.clone(), "@napi-rs/wasm-runtime"),
-        (cwd.clone(), "ava"),
-        (cwd.clone(), "emnapi"),
-        (cwd, "typescript"),
-        // relative path
-        (f1.clone(), "./"),
-        (f1.clone(), "./lib/index"),
-        // absolute path
-        (f1.clone(), "/absolute/path"),
-        // query fragment
-        (f2.clone(), "./main1.js#fragment?query"),
-        (f2.clone(), "m1/a.js?query#fragment"),
-        // browserField
-        (f2.join("browser-module"), "./lib/replaced"),
-        (f2.join("browser-module/lib"), "./replaced"),
-        // exportsField
-        (f2.join("exports-field"), "exports-field"),
-        (f2.join("exports-field"), "exports-field/dist/main.js"),
-        (f2.join("exports-field"), "exports-field/dist/main.js?foo"),
-        (f2.join("exports-field"), "exports-field/dist/main.js#foo"),
-        (f2.join("exports-field"), "@exports-field/core"),
-        (f2.join("imports-exports-wildcard"), "m/features/f.js"),
-        // extensionAlias
-        (f2.join("extension-alias"), "./index.js"),
-        (f2.join("extension-alias"), "./dir2/index.mjs"),
-        // extensions
-        (f2.join("extensions"), "./foo"),
-        (f2.join("extensions"), "."),
-        (f2.join("extensions"), "./dir"),
-        (f2.join("extensions"), "module/"),
-        // importsField
-        (f2.join("imports-field"), "#imports-field"),
-        (f2.join("imports-exports-wildcard/node_modules/m/"), "#internal/i.js"),
-        // scoped
-        (f2.join("scoped"), "@scope/pack1"),
-        (f2.join("scoped"), "@scope/pack2/lib"),
-        // dashed name
-        (f2.clone(), "dash"),
-        (f2.clone(), "dash-name"),
-        (f2.join("node_modules/dash"), "dash"),
-        (f2.join("node_modules/dash"), "dash-name"),
-        (f2.join("node_modules/dash-name"), "dash"),
-        (f2.join("node_modules/dash-name"), "dash-name"),
-        // alias
-        (f1.clone(), "aaa"),
-        (f1.clone(), "ggg"),
-        (f1.clone(), "rrr"),
-        (f1.clone(), "@"),
-        (f1, "@@@"),
-    ]
+	vec![
+		// real packages
+		(cwd.clone(), "@napi-rs/cli"),
+		(cwd.clone(), "@napi-rs/wasm-runtime"),
+		(cwd.clone(), "ava"),
+		(cwd.clone(), "emnapi"),
+		(cwd, "typescript"),
+		// relative path
+		(f1.clone(), "./"),
+		(f1.clone(), "./lib/index"),
+		// absolute path
+		(f1.clone(), "/absolute/path"),
+		// query fragment
+		(f2.clone(), "./main1.js#fragment?query"),
+		(f2.clone(), "m1/a.js?query#fragment"),
+		// browserField
+		(f2.join("browser-module"), "./lib/replaced"),
+		(f2.join("browser-module/lib"), "./replaced"),
+		// exportsField
+		(f2.join("exports-field"), "exports-field"),
+		(f2.join("exports-field"), "exports-field/dist/main.js"),
+		(f2.join("exports-field"), "exports-field/dist/main.js?foo"),
+		(f2.join("exports-field"), "exports-field/dist/main.js#foo"),
+		(f2.join("exports-field"), "@exports-field/core"),
+		(f2.join("imports-exports-wildcard"), "m/features/f.js"),
+		// extensionAlias
+		(f2.join("extension-alias"), "./index.js"),
+		(f2.join("extension-alias"), "./dir2/index.mjs"),
+		// extensions
+		(f2.join("extensions"), "./foo"),
+		(f2.join("extensions"), "."),
+		(f2.join("extensions"), "./dir"),
+		(f2.join("extensions"), "module/"),
+		// importsField
+		(f2.join("imports-field"), "#imports-field"),
+		(f2.join("imports-exports-wildcard/node_modules/m/"), "#internal/i.js"),
+		// scoped
+		(f2.join("scoped"), "@scope/pack1"),
+		(f2.join("scoped"), "@scope/pack2/lib"),
+		// dashed name
+		(f2.clone(), "dash"),
+		(f2.clone(), "dash-name"),
+		(f2.join("node_modules/dash"), "dash"),
+		(f2.join("node_modules/dash"), "dash-name"),
+		(f2.join("node_modules/dash-name"), "dash"),
+		(f2.join("node_modules/dash-name"), "dash-name"),
+		// alias
+		(f1.clone(), "aaa"),
+		(f1.clone(), "ggg"),
+		(f1.clone(), "rrr"),
+		(f1.clone(), "@"),
+		(f1, "@@@"),
+	]
 }
 
 fn symlink<P:AsRef<Path>, Q:AsRef<Path>>(original:P, link:Q) -> io::Result<()> {
