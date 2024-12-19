@@ -1,7 +1,7 @@
 {
 	"name": "@codeeditorland-resolver/binding",
 	"funding": {
-		"url": "https://github.com/sponsors/Boshen"
+		"url": "HTTPS://github.com/sponsors/Boshen"
 	},
 	"scripts": {
 		"build": "napi build --platform --release --package-json-path npm/package.json --manifest-path napi/Cargo.toml",

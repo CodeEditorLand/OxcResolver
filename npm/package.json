@@ -2,7 +2,7 @@
 	"name": "@codeeditorland/resolver",
 	"description": "Oxc Resolver Node API",
 	"funding": {
-		"url": "https://github.com/sponsors/Boshen"
+		"url": "HTTPS://github.com/sponsors/Boshen"
 	},
 	"main": "index.js",
 	"browser": "browser.js",
