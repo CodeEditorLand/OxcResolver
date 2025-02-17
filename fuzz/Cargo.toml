@@ -6,11 +6,11 @@ path = "fuzz_targets/resolver.rs"
 test = false
 
 [dependencies]
-libfuzzer-sys = "0.4.7"
+libfuzzer-sys = "0.4.9"
 oxc_resolver = { path = ".." }
 
 [package]
-edition = "2021"
+edition = "2024"
 name = "resolver_fuzz"
 publish = false
 version = "0.0.0"

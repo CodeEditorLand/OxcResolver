@@ -4,18 +4,18 @@ name = "resolver"
 
 [dependencies]
 cfg-if = "1"
-document-features = { version = "0.2.10", optional = true }
+document-features = { version = "0.2.11", optional = true }
 indexmap = { version = "2", features = ["serde"] }
 json-strip-comments = "1"
 once_cell = "1" # Use `std::sync::OnceLock::get_or_try_init` when it is stable.
-papaya = "0.1.8"
+papaya = "0.2.0"
 pnp = { version = "0.9.0", optional = true }
 rustc-hash = { version = "2" }
-seize = { version = "0.4" }
+seize = { version = "0.5" }
 serde = { version = "1", features = ["derive"], optional = true } # derive for Deserialize from package.json
 serde_json = { version = "1", features = ["preserve_order"], optional = true } # preserve_order: package_json.exports requires order such as `["require", "import", "default"]`
 simdutf8 = { version = "0.1" }
-thiserror = "1"
+thiserror = "2"
 tracing = "0.1"
 
 [dev-dependencies]
@@ -65,7 +65,7 @@ unnecessary_safety_comment = "warn"
 authors = ["Boshen <boshenc@gmail.com>"]
 categories = ["development-tools"]
 description = "ESM / CJS module resolution"
-edition = "2021"
+edition = "2024"
 homepage = "https://github.com/oxc-project/oxc-resolver"
 include = ["/src", "/examples", "/benches"]
 keywords = ["node", "resolve", "cjs", "esm", "enhanced-resolve"]
@@ -73,7 +73,7 @@ license-file = "LICENSE"
 name = "oxc_resolver"
 readme = "README.md"
 repository = "https://github.com/oxc-project/oxc-resolver"
-rust-version = "1.74"
+rust-version = "1.85.0"
 version = "4.0.1"
 
 [package.metadata]
