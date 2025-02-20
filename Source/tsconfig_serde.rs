@@ -110,6 +110,21 @@ pub struct CompilerOptionsSerde {
     /// The actual base from where path aliases are resolved.
     #[serde(skip)]
     paths_base: PathBuf,
+
+    /// <https://www.typescriptlang.org/tsconfig/#experimentalDecorators>
+    pub experimental_decorators: Option<bool>,
+
+    /// <https://www.typescriptlang.org/tsconfig/#jsx>
+    pub jsx: Option<String>,
+
+    /// <https://www.typescriptlang.org/tsconfig/#jsxFactory>
+    pub jsx_factory: Option<String>,
+
+    /// <https://www.typescriptlang.org/tsconfig/#jsxFragmentFactory>
+    pub jsx_fragment_factory: Option<String>,
+
+    /// <https://www.typescriptlang.org/tsconfig/#jsxImportSource>
+    pub jsx_import_source: Option<String>,
 }
 
 impl CompilerOptions for CompilerOptionsSerde {
@@ -139,6 +154,46 @@ impl CompilerOptions for CompilerOptionsSerde {
 
     fn set_paths_base(&mut self, paths_base: PathBuf) {
         self.paths_base = paths_base;
+    }
+
+    fn experimental_decorators(&self) -> Option<&bool> {
+        self.experimental_decorators.as_ref()
+    }
+
+    fn set_experimental_decorators(&mut self, experimental_decorators: bool) {
+        self.experimental_decorators = Some(experimental_decorators);
+    }
+
+    fn jsx(&self) -> Option<&str> {
+        self.jsx.as_deref()
+    }
+
+    fn set_jsx(&mut self, jsx: String) {
+        self.jsx = Some(jsx);
+    }
+
+    fn jsx_factory(&self) -> Option<&str> {
+        self.jsx_factory.as_deref()
+    }
+
+    fn set_jsx_factory(&mut self, jsx_factory: String) {
+        self.jsx_factory = Some(jsx_factory);
+    }
+
+    fn jsx_fragment_factory(&self) -> Option<&str> {
+        self.jsx_fragment_factory.as_deref()
+    }
+
+    fn set_jsx_fragment_factory(&mut self, jsx_fragment_factory: String) {
+        self.jsx_fragment_factory = Some(jsx_fragment_factory);
+    }
+
+    fn jsx_import_source(&self) -> Option<&str> {
+        self.jsx_import_source.as_deref()
+    }
+
+    fn set_jsx_import_source(&mut self, jsx_import_source: String) {
+        self.jsx_import_source = Some(jsx_import_source);
     }
 }
 

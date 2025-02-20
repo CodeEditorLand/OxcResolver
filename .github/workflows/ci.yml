@@ -1,0 +1,119 @@
+name: CI
+
+permissions: {}
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize]
+    paths-ignore:
+      - "**/*.md"
+      - "!.github/workflows/ci.yml"
+  push:
+    branches:
+      - main
+      - "renovate/**"
+    paths-ignore:
+      - "**/*.md"
+      - "!.github/workflows/ci.yml"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.ref_name != 'main' }}
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  test:
+    name: Test
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - os: windows-latest
+          - os: ubuntu-latest
+          - os: macos-14
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: taiki-e/checkout-action@b13d20b7cda4e2f325ef19895128f7ff735c0b3d # v1.3.1
+      - uses: oxc-project/setup-rust@cd82e1efec7fef815e2c23d296756f31c7cdc03d # v1.0.0
+        with:
+          save-cache: ${{ github.ref_name == 'main' }}
+          cache-key: warm
+      - uses: ./.github/actions/pnpm
+      - run: cargo check --all-features --locked
+      - run: cargo test --doc
+      - run: cargo test --all-features
+      - run: pnpm run build:debug && pnpm run test
+        if: ${{ matrix.os  != 'windows-latest' }}
+
+  wasm:
+    name: Check Wasm
+    runs-on: ubuntu-latest
+    steps:
+      - uses: taiki-e/checkout-action@b13d20b7cda4e2f325ef19895128f7ff735c0b3d # v1.3.1
+
+      - uses: oxc-project/setup-rust@cd82e1efec7fef815e2c23d296756f31c7cdc03d # v1.0.0
+        with:
+          cache-key: wasm
+          save-cache: ${{ github.ref_name == 'main' }}
+
+      - name: Check
+        run: |
+          rustup target add wasm32-unknown-unknown
+          cargo check --all-features --target wasm32-unknown-unknown
+
+  wasi:
+    name: Test wasi target
+    runs-on: ubuntu-latest
+    steps:
+      - uses: taiki-e/checkout-action@b13d20b7cda4e2f325ef19895128f7ff735c0b3d # v1.3.1
+
+      - uses: oxc-project/setup-rust@cd82e1efec7fef815e2c23d296756f31c7cdc03d # v1.0.0
+        with:
+          cache-key: wasi
+          save-cache: ${{ github.ref_name == 'main' }}
+
+      - uses: ./.github/actions/pnpm
+
+      - name: Build
+        run: |
+          rustup target add wasm32-wasip1-threads
+          pnpm build --target wasm32-wasip1-threads
+
+      - name: Test
+        run: pnpm run test
+        env:
+          WASI_TEST: 1
+
+  typos:
+    name: Spell Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: taiki-e/checkout-action@b13d20b7cda4e2f325ef19895128f7ff735c0b3d # v1.3.1
+
+      - uses: crate-ci/typos@51f257b946f503b768e522781f56e9b7b5570d48 # v1.29.7
+        with:
+          files: .
+
+  lint:
+    name: Clippy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: taiki-e/checkout-action@b13d20b7cda4e2f325ef19895128f7ff735c0b3d # v1.3.1
+      - uses: oxc-project/setup-rust@cd82e1efec7fef815e2c23d296756f31c7cdc03d # v1.0.0
+        with:
+          components: clippy
+      - run: cargo clippy --all-features --all-targets -- -D warnings
+
+  doc:
+    name: Doc
+    runs-on: ubuntu-latest
+    steps:
+      - uses: taiki-e/checkout-action@b13d20b7cda4e2f325ef19895128f7ff735c0b3d # v1.3.1
+      - uses: oxc-project/setup-rust@cd82e1efec7fef815e2c23d296756f31c7cdc03d # v1.0.0
+        with:
+          components: rust-docs
+      - run: RUSTDOCFLAGS='-D warnings' cargo doc --no-deps --all-features

@@ -186,10 +186,11 @@ export interface NapiResolveOptions {
 }
 
 export interface ResolveResult {
-	path?: string;
-	error?: string;
-	/** "type" field in the package.json file */
-	moduleType?: string;
+  path?: string;
+  error?: string;
+  /** "type" field in the package.json file */
+  moduleType?: string;
+  packageJsonPath?: string;
 }
 
 /**

@@ -13,14 +13,14 @@ doctest = false
 path = "Source/lib.rs"
 test = false
 
-[package]
-edition = "2024"
-name = "oxc_napi_resolver"
-publish = false
-rust-version = "1.85.0"
-version = "0.0.0"
+[dependencies]
+ctor = "0.3.4"
+napi = { version = "3.0.0-alpha", default-features = false, features = ["napi3", "serde-json"] }
+napi-derive = { version = "3.0.0-alpha" }
+oxc_resolver = { path = ".." }
+tracing-subscriber = { version = "0.3.18", default-features = false, features = ["std", "fmt"] } # Omit the `regex` feature
 
 [package.metadata]
 
-[package.metadata.cargo-machete]
-ignored = ["napi"]
+[package.metadata.cargo-shear]
+ignored = ["ctor"]
